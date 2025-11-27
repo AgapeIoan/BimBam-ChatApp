@@ -9,9 +9,9 @@ class FriendRequestRepository:
     def __init__(self, session: AsyncSession):
         self._session = session
 
-    async def get_friend_request_by_id(self, db: AsyncSession, request_id: int) -> Optional[FriendRequest]:
+    async def get_friend_request_by_id(self, request_id: int) -> Optional[FriendRequest]:
         try:
-            result = await db.execute(select(FriendRequest).where(FriendRequest.id == request_id))
+            result = await self._session.execute(select(FriendRequest).where(FriendRequest.id == request_id))
             return result.scalars().one_or_none()
         except Exception as e:
             pass

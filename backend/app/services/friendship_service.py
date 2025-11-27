@@ -7,18 +7,21 @@ from schemas.user.user_read import UserRead
 
 
 class FriendshipService:
-    def __init__(self, session: AsyncSession):
-        self._session = session
+    def __init__(
+        self,
+        friendship_repo: FriendshipRepository,
+        user_repo: UserRepository,
+    ):
+        self.friendship_repo = friendship_repo
+        self.user_repo = user_repo
 
     async def get_friends(self, user_id: int):
         try:
-            repo = FriendshipRepository(self._session)
-            friends = await repo.get_friends(user_id)
+            friends = await self.friendship_repo.get_friends(user_id)
             online_ids = await get_online_users()
-            user_repo = UserRepository(self._session)
             result = []
             for fr in friends:
-                friend = await user_repo.get_by_id(fr.friend_id)
+                friend = await self.user_repo.get_by_id(fr.friend_id)
                 result.append({
                     "friend": UserRead.model_validate(friend),
                     "is_online": friend.id in online_ids,
