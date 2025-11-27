@@ -1,5 +1,5 @@
-from datetime import datetime, UTC
-from sqlalchemy import ForeignKey, DateTime, UniqueConstraint, Enum
+from datetime import datetime
+from sqlalchemy import ForeignKey, DateTime, UniqueConstraint, Enum, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db.base import Base
@@ -18,7 +18,7 @@ class FriendRequest(Base):
         Enum(FriendRequestStatus, name="friend_request_status"),
         default=FriendRequestStatus.PENDING
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
         UniqueConstraint("from_user_id", "to_user_id", name="uq_friend_request_once"),

@@ -1,6 +1,6 @@
-from datetime import datetime, UTC
+from datetime import datetime
 from typing import Optional
-from sqlalchemy import ForeignKey, DateTime, UniqueConstraint, Integer
+from sqlalchemy import ForeignKey, DateTime, UniqueConstraint, Integer, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from db.base import Base
@@ -14,7 +14,7 @@ class Friendship(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     friend_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # synced from Redis periodically
     last_read_message_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

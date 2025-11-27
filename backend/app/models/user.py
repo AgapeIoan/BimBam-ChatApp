@@ -1,7 +1,7 @@
-from datetime import datetime, UTC
+from datetime import datetime
 from typing import Optional, List
 
-from sqlalchemy import String, DateTime
+from sqlalchemy import String, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db.base import Base
@@ -21,8 +21,8 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(120))
     avatar_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(UTC))
-    last_seen: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_seen: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
     sent_requests: Mapped[List["FriendRequest"]] = relationship(

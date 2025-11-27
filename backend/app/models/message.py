@@ -1,5 +1,5 @@
-from datetime import datetime, UTC
-from sqlalchemy import ForeignKey, Text, Boolean, DateTime, Index
+from datetime import datetime
+from sqlalchemy import ForeignKey, Text, Boolean, DateTime, Index, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from db.base import Base
@@ -14,7 +14,7 @@ class Message(Base):
     receiver_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
 
     content: Mapped[str] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(UTC), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     delivered: Mapped[bool] = mapped_column(Boolean, default=False)
     read: Mapped[bool] = mapped_column(Boolean, default=False)
