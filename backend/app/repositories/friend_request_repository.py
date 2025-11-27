@@ -1,38 +1,34 @@
-from sqlalchemy.orm import Session
 from typing import List, Optional
-
 from models.friend_request import FriendRequest
 from models.enums import FriendRequestStatus
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 
 class FriendRequestRepository:
+    def __init__(self, session: AsyncSession):
+        self._session = session
 
-    @staticmethod
-    def get_friend_request_by_id(db: Session, request_id: int) -> Optional[FriendRequest]:
-        return (
-            db.query(FriendRequest)
-            .filter(FriendRequest.id == request_id)
-            .one_or_none()
-        )
+    async def get_friend_request_by_id(self, db: AsyncSession, request_id: int) -> Optional[FriendRequest]:
+        result = await db.execute(select(FriendRequest).where(FriendRequest.id == request_id))
+        return result.scalars().one_or_none()
 
-    @staticmethod
-    def get_friend_request(
-        db: Session,
+    async def get_friend_request(
+        self,
         from_user_id: int,
         to_user_id: int,
     ) -> Optional[FriendRequest]:
-        return (
-            db.query(FriendRequest)
-            .filter(
+        result = await self._session.execute(
+            select(FriendRequest).where(
                 FriendRequest.from_user_id == from_user_id,
                 FriendRequest.to_user_id == to_user_id,
             )
-            .one_or_none()
         )
+        return result.scalars().one_or_none()
 
-    @staticmethod
-    def create_friend_request(
-        db: Session,
+
+    async def create_friend_request(          
+        self,
         from_user_id: int,
         to_user_id: int,
     ) -> FriendRequest:
@@ -41,50 +37,47 @@ class FriendRequestRepository:
             to_user_id=to_user_id,
             status=FriendRequestStatus.PENDING,
         )
-        db.add(fr)
-        db.commit()
-        db.refresh(fr)
+        self._session.add(fr)
+        await self._session.commit()
+        await self._session.refresh(fr)
         return fr
 
-    @staticmethod
-    def update_friend_request_status(
-        db: Session,
+    async def update_friend_request_status(
+        self,
         fr: FriendRequest,
         status: FriendRequestStatus,
     ) -> FriendRequest:
         fr.status = status
-        db.commit()
-        db.refresh(fr)
+        await self._session.commit()
+        await self._session.refresh(fr)
         return fr
 
-    @staticmethod
-    def get_incoming_requests(
-        db: Session,
+    async def get_incoming_requests(
+        self,
         user_id: int,
     ) -> List[FriendRequest]:
-        return (
-            db.query(FriendRequest)
-            .filter(
+        result = await self._session.execute(
+            select(FriendRequest)
+            .where(
                 FriendRequest.to_user_id == user_id,
                 FriendRequest.status == FriendRequestStatus.PENDING,
             )
             .order_by(FriendRequest.created_at.desc())
-            .all()
         )
+        return result.scalars().all()
     
-    @staticmethod
-    def get_outgoing_requests(
-        db: Session,
+    async def get_outgoing_requests(
+        self,
         user_id: int,
     ) -> List[FriendRequest]:
-        return (
-            db.query(FriendRequest)
-            .filter(
+        result = await self._session.execute(
+            select(FriendRequest)
+            .where(
                 FriendRequest.from_user_id == user_id,
                 FriendRequest.status == FriendRequestStatus.PENDING,
             )
             .order_by(FriendRequest.created_at.desc())
-            .all()
         )
+        return result.scalars().all()
 
 

@@ -1,24 +1,23 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from repositories.friendship_repository import FriendshipRepository
 from repositories.user_repository import UserRepository
 from core.redis_client import get_online_users
-from schemas.user import UserRead
+from schemas.user.user_read import UserRead
 
 
 class FriendshipService:
+    def __init__(self, session: AsyncSession):
+        self._session = session
 
-    @staticmethod
-    async def get_friends(db: Session, user_id: int):
-
-        friends = FriendshipRepository.get_friends(db, user_id)
-
-        # Get online users from Redis
+    async def get_friends(self, user_id: int):
+        repo = FriendshipRepository(self._session)
+        friends = await repo.get_friends(user_id)
         online_ids = await get_online_users()
-
+        user_repo = UserRepository(self._session)
         result = []
         for fr in friends:
-            friend = UserRepository.get_by_id(db, fr.friend_id)
+            friend = await user_repo.get_by_id(fr.friend_id)
             result.append({
                 "friend": UserRead.model_validate(friend),
                 "is_online": friend.id in online_ids,

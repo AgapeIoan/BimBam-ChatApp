@@ -1,59 +1,49 @@
 from typing import List, Optional
-
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.friendship import Friendship
 from models.message import Message
+from sqlalchemy import select
 from repositories.message_repository import MessageRepository
+from repositories.friendship_repository import FriendshipRepository
 from core.redis_client import increment_unread, reset_unread
-from schemas.message import MessageRead
+from schemas.message.message_read import MessageRead
 
 
 class MessageService:
-    @staticmethod
-    def _ensure_are_friends(db: Session, user_id: int, other_user_id: int) -> None:
-    
-        friendship = (
-            db.query(Friendship)
-            .filter(
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    async def _ensure_are_friends(self, user_id: int, other_user_id: int) -> None:
+        result = await self._session.execute(
+            select(Friendship).where(
                 Friendship.user_id == user_id,
                 Friendship.friend_id == other_user_id,
             )
-            .one_or_none()
         )
+        friendship = result.scalars().one_or_none()
         if not friendship:
             raise PermissionError("Users are not friends")
 
-    @staticmethod
     async def send_message(
-        db: Session,
+        self,
         *,
         sender_id: int,
         receiver_id: int,
         content: str,
     ) -> Message:
-        """
-        Logic for sending a message:
-        - check friendship
-        - create message
-        - increment unread count in Redis
-        """
-        MessageService._ensure_are_friends(db, sender_id, receiver_id)
-
-        msg = MessageRepository.create(
-            db,
+        await self._ensure_are_friends(sender_id, receiver_id)
+        repo = MessageRepository(self._session)
+        msg = await repo.create(
             sender_id=sender_id,
             receiver_id=receiver_id,
             content=content,
         )
-
         await increment_unread(receiver_id, sender_id)
-
         return msg
 
-    @staticmethod
     async def get_conversation(
-        db: Session,
+        self,
         *,
         user_id: int,
         with_user_id: int,
@@ -61,58 +51,49 @@ class MessageService:
         before_id: Optional[int] = None,
         mark_read: bool = True,
     ) -> List[Message]:
-
-        MessageService._ensure_are_friends(db, user_id, with_user_id)
-
-        messages = MessageRepository.get_conversation(
-            db,
+        await self._ensure_are_friends(user_id, with_user_id)
+        repo = MessageRepository(self._session)
+        messages = await repo.get_conversation(
             user_id=user_id,
             with_user_id=with_user_id,
             limit=limit,
             before_id=before_id,
         )
-
-
         if mark_read:
-            updated = MessageRepository.mark_messages_as_read(
-                db,
+            updated = await repo.mark_messages_as_read(
+                self,
                 receiver_id=user_id,
                 from_user_id=with_user_id,
             )
-
             if updated:
-                # Reset unread count in Redis
                 await reset_unread(user_id, with_user_id)
 
-                # sync basic unread info to Friendship row
-                friendship = (
-                    db.query(Friendship)
-                    .filter(
+            friendship_repo = FriendshipRepository(self._session)
+            are_friends = await friendship_repo.are_friends(user_id, with_user_id)
+            if are_friends and updated:
+                result = await self._session.execute(
+                    select(Friendship).where(
                         Friendship.user_id == user_id,
                         Friendship.friend_id == with_user_id,
                     )
-                    .one_or_none()
                 )
+                friendship = result.scalars().one_or_none()
                 if friendship:
                     last = updated[-1]
                     friendship.last_read_message_id = last.id
                     friendship.unread_count = 0
-                    db.commit()
-
+                    await self._session.commit()
         return messages
 
-    @staticmethod
     async def get_conversation_as_schema(
-        db: Session,
+        self,
         *,
         user_id: int,
         with_user_id: int,
         limit: int = 100,
         before_id: Optional[int] = None,
     ) -> list[MessageRead]:
-
-        messages = await MessageService.get_conversation(
-            db,
+        messages = await self.get_conversation(
             user_id=user_id,
             with_user_id=with_user_id,
             limit=limit,

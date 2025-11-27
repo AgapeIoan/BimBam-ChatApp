@@ -1,44 +1,41 @@
+
 from typing import List, Optional
 from datetime import datetime, UTC
-
-from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_
-
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, or_, and_
 from models.message import Message
 
-
 class MessageRepository:
-    @staticmethod
-    def create(
-        db: Session,
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    async def create(
+        self,
         *,
         sender_id: int,
         receiver_id: int,
         content: str,
     ) -> Message:
-
         msg = Message(
             sender_id=sender_id,
             receiver_id=receiver_id,
             content=content,
             created_at=datetime.now(UTC),
         )
-        db.add(msg)
-        db.commit()
-        db.refresh(msg)
+        self._session.add(msg)
+        await self._session.commit()
+        await self._session.refresh(msg)
         return msg
 
-    @staticmethod
-    def get_conversation(
-        db: Session,
+    async def get_conversation(
+        self,
         *,
         user_id: int,
         with_user_id: int,
         limit: int = 100,
         before_id: Optional[int] = None,
     ) -> List[Message]:
-
-        q = db.query(Message).filter(
+        stmt = select(Message).where(
             or_(
                 and_(
                     Message.sender_id == user_id,
@@ -50,24 +47,21 @@ class MessageRepository:
                 ),
             )
         )
-
         if before_id is not None:
-            # Only messages older than a given id
-            q = q.filter(Message.id < before_id)
+            stmt = stmt.where(Message.id < before_id)
+        stmt = stmt.order_by(Message.created_at.asc()).limit(limit)
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
 
-        q = q.order_by(Message.created_at.asc()).limit(limit)
-        return q.all()
-
-    @staticmethod
-    def get_unread_from_user(
-        db: Session,
+    async def get_unread_from_user(
+        self,
         *,
         receiver_id: int,
         from_user_id: int,
     ) -> List[Message]:
 
         return (
-            db.query(Message)
+            self._session.query(Message)
             .filter(
                 Message.sender_id == from_user_id,
                 Message.receiver_id == receiver_id,
@@ -77,9 +71,8 @@ class MessageRepository:
             .all()
         )
 
-    @staticmethod
-    def mark_messages_as_read(
-        db: Session,
+    async def mark_messages_as_read(
+        self,
         *,
         receiver_id: int,
         from_user_id: int,
@@ -88,8 +81,7 @@ class MessageRepository:
         Mark all unread messages from from_user_id → receiver_id as read.
         Returns the list of affected messages.
         """
-        messages = MessageRepository.get_unread_from_user(
-            db,
+        messages = await self.get_unread_from_user(
             receiver_id=receiver_id,
             from_user_id=from_user_id,
         )
@@ -100,5 +92,5 @@ class MessageRepository:
         for m in messages:
             m.read = True
 
-        db.commit()
+        await self._session.commit()
         return messages
