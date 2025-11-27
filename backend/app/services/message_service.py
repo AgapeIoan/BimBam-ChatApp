@@ -30,7 +30,7 @@ class MessageService:
         *,
         sender_id: int,
         receiver_id: int,
-        body: str,
+        content: str,
     ) -> Message:
         """
         Logic for sending a message:
@@ -44,7 +44,7 @@ class MessageService:
             db,
             sender_id=sender_id,
             receiver_id=receiver_id,
-            body=body,
+            content=content,
         )
 
         await increment_unread(receiver_id, sender_id)
