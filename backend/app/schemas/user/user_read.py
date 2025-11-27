@@ -9,3 +9,4 @@ class UserRead(UserBase):
 
     class Config:
         from_attributes = True
+        populate_by_name = True

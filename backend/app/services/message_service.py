@@ -32,15 +32,18 @@ class MessageService:
         receiver_id: int,
         content: str,
     ) -> Message:
-        await self._ensure_are_friends(sender_id, receiver_id)
-        repo = MessageRepository(self._session)
-        msg = await repo.create(
-            sender_id=sender_id,
-            receiver_id=receiver_id,
-            content=content,
-        )
-        await increment_unread(receiver_id, sender_id)
-        return msg
+            try:
+                await self._ensure_are_friends(sender_id, receiver_id)
+                repo = MessageRepository(self._session)
+                msg = await repo.create(
+                    sender_id=sender_id,
+                    receiver_id=receiver_id,
+                    content=content,
+                )
+                await increment_unread(receiver_id, sender_id)
+                return msg
+            except Exception as e:
+                pass
 
     async def get_conversation(
         self,
@@ -51,39 +54,42 @@ class MessageService:
         before_id: Optional[int] = None,
         mark_read: bool = True,
     ) -> List[Message]:
-        await self._ensure_are_friends(user_id, with_user_id)
-        repo = MessageRepository(self._session)
-        messages = await repo.get_conversation(
-            user_id=user_id,
-            with_user_id=with_user_id,
-            limit=limit,
-            before_id=before_id,
-        )
-        if mark_read:
-            updated = await repo.mark_messages_as_read(
-                self,
-                receiver_id=user_id,
-                from_user_id=with_user_id,
-            )
-            if updated:
-                await reset_unread(user_id, with_user_id)
-
-            friendship_repo = FriendshipRepository(self._session)
-            are_friends = await friendship_repo.are_friends(user_id, with_user_id)
-            if are_friends and updated:
-                result = await self._session.execute(
-                    select(Friendship).where(
-                        Friendship.user_id == user_id,
-                        Friendship.friend_id == with_user_id,
-                    )
+            try:
+                await self._ensure_are_friends(user_id, with_user_id)
+                repo = MessageRepository(self._session)
+                messages = await repo.get_conversation(
+                    user_id=user_id,
+                    with_user_id=with_user_id,
+                    limit=limit,
+                    before_id=before_id,
                 )
-                friendship = result.scalars().one_or_none()
-                if friendship:
-                    last = updated[-1]
-                    friendship.last_read_message_id = last.id
-                    friendship.unread_count = 0
-                    await self._session.commit()
-        return messages
+                if mark_read:
+                    updated = await repo.mark_messages_as_read(
+                        self,
+                        receiver_id=user_id,
+                        from_user_id=with_user_id,
+                    )
+                    if updated:
+                        await reset_unread(user_id, with_user_id)
+
+                    friendship_repo = FriendshipRepository(self._session)
+                    are_friends = await friendship_repo.are_friends(user_id, with_user_id)
+                    if are_friends and updated:
+                        result = await self._session.execute(
+                            select(Friendship).where(
+                                Friendship.user_id == user_id,
+                                Friendship.friend_id == with_user_id,
+                            )
+                        )
+                        friendship = result.scalars().one_or_none()
+                        if friendship:
+                            last = updated[-1]
+                            friendship.last_read_message_id = last.id
+                            friendship.unread_count = 0
+                            await self._session.commit()
+                return messages
+            except Exception as e:
+                pass
 
     async def get_conversation_as_schema(
         self,
@@ -93,10 +99,13 @@ class MessageService:
         limit: int = 100,
         before_id: Optional[int] = None,
     ) -> list[MessageRead]:
-        messages = await self.get_conversation(
-            user_id=user_id,
-            with_user_id=with_user_id,
-            limit=limit,
-            before_id=before_id,
-        )
-        return [MessageRead.model_validate(m) for m in messages]
+            try:
+                messages = await self.get_conversation(
+                    user_id=user_id,
+                    with_user_id=with_user_id,
+                    limit=limit,
+                    before_id=before_id,
+                )
+                return [MessageRead.model_validate(m) for m in messages]
+            except Exception as e:
+                pass
