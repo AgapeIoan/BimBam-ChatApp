@@ -14,13 +14,13 @@ class MessageRepository:
         *,
         sender_id: int,
         receiver_id: int,
-        body: str,
+        content: str,
     ) -> Message:
 
         msg = Message(
             sender_id=sender_id,
             receiver_id=receiver_id,
-            body=body,
+            content=content,
             created_at=datetime.now(UTC),
         )
         db.add(msg)
