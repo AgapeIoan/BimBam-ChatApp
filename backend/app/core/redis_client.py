@@ -1,4 +1,5 @@
 import redis.asyncio as redis
+from redis.exceptions import RedisError, ConnectionError, TimeoutError
 from typing import List, Dict
 
 from core.config import get_settings
@@ -25,50 +26,140 @@ def k_unread(uid: int):
 
 # Presence
 async def set_user_online(uid: int, ttl: int = 60):
-    pipe = redis_client.pipeline()
-    pipe.sadd(k_online_users(), uid)
-    pipe.set(k_user_online(uid), "1", ex=ttl)
-    await pipe.execute()
+    try:
+        pipe = redis_client.pipeline()
+        pipe.sadd(k_online_users(), uid)
+        pipe.set(k_user_online(uid), "1", ex=ttl)
+        await pipe.execute()
+    except ConnectionError:
+        pass
+    except TimeoutError:
+        pass
+    except RedisError:
+        pass
+    except Exception:
+        pass
 
 
 async def set_user_offline(uid: int):
-    pipe = redis_client.pipeline()
-    pipe.srem(k_online_users(), uid)
-    pipe.delete(k_user_online(uid))
-    await pipe.execute()
+    try:
+        pipe = redis_client.pipeline()
+        pipe.srem(k_online_users(), uid)
+        pipe.delete(k_user_online(uid))
+        await pipe.execute()
+    except ConnectionError:
+        pass
+    except TimeoutError:
+        pass
+    except RedisError:
+        pass
+    except Exception:
+        pass
 
 
 async def is_online(uid: int) -> bool:
-    return await redis_client.exists(k_user_online(uid)) == 1
+    try:
+        return await redis_client.exists(k_user_online(uid)) == 1
+    except ConnectionError:
+        pass
+    except TimeoutError:
+        pass
+    except RedisError:
+        pass
+    except Exception:
+        pass
 
 
 async def get_online_users() -> List[int]:
-    result = await redis_client.smembers(k_online_users())
-    return [int(x) for x in result]
+    try:
+        result = await redis_client.smembers(k_online_users())
+        return [int(x) for x in result]
+    except ConnectionError:
+        pass
+    except TimeoutError:
+        pass
+    except RedisError:
+        pass
+    except Exception:
+        pass
 
 
 # Typing
 async def set_typing(uid: int, to_uid: int, ttl: int = 5):
-    await redis_client.set(k_typing(uid, to_uid), "1", ex=ttl)
+    try:
+        await redis_client.set(k_typing(uid, to_uid), "1", ex=ttl)
+    except ConnectionError:
+        pass
+    except TimeoutError:
+        pass
+    except RedisError:
+        pass
+    except Exception:
+        pass
 
 
 async def clear_typing(uid: int, to_uid: int):
-    await redis_client.delete(k_typing(uid, to_uid))
+    try:
+        await redis_client.delete(k_typing(uid, to_uid))
+    except ConnectionError:
+        pass
+    except TimeoutError:
+        pass
+    except RedisError:
+        pass
+    except Exception:
+        pass
 
 
 async def is_typing(uid: int, to_uid: int) -> bool:
-    return await redis_client.exists(k_typing(uid, to_uid)) == 1
+    try:
+        return await redis_client.exists(k_typing(uid, to_uid)) == 1
+    except ConnectionError:
+        pass
+    except TimeoutError:
+        pass
+    except RedisError:
+        pass
+    except Exception:
+        pass
 
 
 # Unread
 async def increment_unread(receiver_id: int, sender_id: int):
-    await redis_client.hincrby(k_unread(receiver_id), sender_id, 1)
+    try:
+        await redis_client.hincrby(k_unread(receiver_id), sender_id, 1)
+    except ConnectionError:
+        pass
+    except TimeoutError:
+        pass
+    except RedisError:
+        pass
+    except Exception:
+        pass
 
 
 async def reset_unread(receiver_id: int, sender_id: int):
-    await redis_client.hset(k_unread(receiver_id), sender_id, 0)
+    try:
+        await redis_client.hset(k_unread(receiver_id), sender_id, 0)
+    except ConnectionError:
+        pass
+    except TimeoutError:
+        pass
+    except RedisError:
+        pass
+    except Exception:
+        pass
 
 
 async def get_unread_map(uid: int) -> Dict[int, int]:
-    result = await redis_client.hgetall(k_unread(uid))
-    return {int(k): int(v) for k, v in result.items()}
+    try:
+        result = await redis_client.hgetall(k_unread(uid))
+        return {int(k): int(v) for k, v in result.items()}
+    except ConnectionError:
+        pass
+    except TimeoutError:
+        pass
+    except RedisError:
+        pass
+    except Exception:
+        pass
