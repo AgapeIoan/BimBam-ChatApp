@@ -3,6 +3,7 @@ from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+from typing import Optional, Dict, Any
 
 
 class MessageSendPayload(BaseModel):
@@ -31,6 +32,7 @@ class MessageAckPayload(BaseModel):
     message_id: Optional[UUID] = Field(None, alias="messageId")
     status: str
     delivered: bool = Field(default=False, alias="delivered")
+    message: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
 
     class Config:

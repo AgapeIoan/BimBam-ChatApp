@@ -114,6 +114,7 @@ async def handle_message_send(
         messageId=msg.id,
         status="ok",
         delivered=delivered,
+        message=message_dict,
     )
     await websocket.send_json(
         {
