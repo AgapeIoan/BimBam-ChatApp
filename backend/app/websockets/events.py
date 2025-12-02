@@ -154,6 +154,7 @@ async def handle_mark_read(
     user_id: UUID,
     data: Dict[str, Any],
 ):
+    correlation_id = data.get("correlationId")
     before_id = data.get("beforeMessageId")
     conversation_id = data.get("conversationId")
     if not conversation_id:
@@ -206,6 +207,21 @@ async def handle_mark_read(
 
         for rid in recipients:
             await connection_manager.send_to_user(rid, envelope)
+
+    # Ack back to reader
+    ack_msg_id = updated[-1].id if updated else None
+    ack = MessageAckPayload(
+        correlationId=correlation_id,
+        messageId=ack_msg_id,
+        status="ok",
+        delivered=True,
+    )
+    await websocket.send_json(
+        {
+            "type": WebSocketEventType.MESSAGE_ACK.value,
+            "data": ack.model_dump(by_alias=True),
+        }
+    )
 
 
 async def dispatch_event(
