@@ -9,3 +9,4 @@ PyJWT
 pytest
 pytest-asyncio
 httpx
+asyncpg

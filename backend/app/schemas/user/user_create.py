@@ -1,6 +1,6 @@
 from typing import Optional
 from pydantic import EmailStr, Field
-from schemas.user.user_base import UserBase
+from app.schemas.user.user_base import UserBase
 
 class UserCreate(UserBase):
     provider: str = Field(..., alias="provider")

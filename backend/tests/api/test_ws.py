@@ -53,5 +53,7 @@ def test_websocket_rate_limit():
                     },
                 }
             )
-        with pytest.raises(WebSocketDisconnect):
-            ws.receive_json()
+        error_msg = ws.receive_json()
+        assert error_msg["type"] == "error"
+        event = ws.receive()
+        assert event["type"] == "websocket.close"
