@@ -3,3 +3,5 @@ pydantic-settings
 fastapi
 uvicorn
 redis
+sqlalchemy
+pydantic[email]

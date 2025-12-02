@@ -1,7 +1,8 @@
 from datetime import datetime
 from sqlalchemy import ForeignKey, DateTime, UniqueConstraint, Enum, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 from db.base import Base
 from models.enums import FriendRequestStatus
 
@@ -9,10 +10,10 @@ from models.enums import FriendRequestStatus
 class FriendRequest(Base):
     __tablename__ = "friend_requests"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    from_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    to_user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    from_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    to_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
 
     status: Mapped[FriendRequestStatus] = mapped_column(
         Enum(FriendRequestStatus, name="friend_request_status"),

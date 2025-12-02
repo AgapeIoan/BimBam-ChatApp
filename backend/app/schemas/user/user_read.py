@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import Field
-from user_base import UserBase
+from schemas.user.user_base import UserBase
 
 class UserRead(UserBase):
     id: int = Field(..., alias="id")

@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import Optional, List
-
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import String, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
+import uuid
 from db.base import Base
 from models.friend_request import FriendRequest
 from models.message import Message
@@ -12,7 +12,7 @@ from models.message import Message
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     provider: Mapped[str] = mapped_column(String(20)) # e.g., "google", "facebook"
     provider_id: Mapped[str] = mapped_column(String(128), unique=True)

@@ -1,104 +1,170 @@
 from typing import List, Optional
+from fastapi import HTTPException
+from uuid import UUID
 
-from models.friendship import Friendship
-from models.message import Message
-from sqlalchemy import select
 from repositories.message_repository import MessageRepository
-from repositories.friendship_repository import FriendshipRepository
+from repositories.conversation_repository import ConversationRepository
+from repositories.user_repository import UserRepository
+
 from core.redis_client import increment_unread, reset_unread
+
 from schemas.message.message_read import MessageRead
+from schemas.message.message_page import MessagePage
 
 
 class MessageService:
+
     def __init__(
         self,
         message_repo: MessageRepository,
-        friendship_repo: FriendshipRepository,
+        conversation_repo: ConversationRepository,
+        user_repo: UserRepository,
     ):
         self.message_repo = message_repo
-        self.friendship_repo = friendship_repo
+        self.conversation_repo = conversation_repo
+        self.user_repo = user_repo
 
-    async def _ensure_are_friends(self, user_id: int, other_user_id: int):
-        are_friends = await self.friendship_repo.are_friends(user_id, other_user_id)
-        if not are_friends:
-            raise PermissionError("Users are not friends")
+    async def _ensure_conversation_exists(self, conversation_id: UUID):
+        conv = await self.conversation_repo.get_by_id(conversation_id)
+        if not conv:
+            raise HTTPException(404, "Conversation not found")
+        return conv
+
+    async def _ensure_member(self, conversation_id: UUID, user_id: UUID):
+        conv = await self._ensure_conversation_exists(conversation_id)
+
+        is_member = await self.conversation_repo.is_member(conversation_id, user_id)
+        if not is_member:
+            raise HTTPException(status_code=403, detail="You are not part of this conversation.")
+        return conv
 
     async def send_message(
         self,
         *,
-        sender_id: int,
-        receiver_id: int,
+        conversation_id: UUID,
+        sender_id: UUID,
         content: str,
-    ) -> Message:
-            try:
-                await self._ensure_are_friends(sender_id, receiver_id)
-                
-                msg = await self.message_repo.create(
-                    sender_id=sender_id,
-                    receiver_id=receiver_id,
-                    content=content,
-                )
-                await increment_unread(receiver_id, sender_id)
-                return msg
-            except Exception as e:
-                pass
+    ):
 
-    async def get_conversation(
+        if not content or not content.strip():
+            raise HTTPException(400, "Message content cannot be empty")
+        
+        await self._ensure_member(conversation_id, sender_id)
+
+        msg = await self.message_repo.create(
+            conversation_id=conversation_id,
+            sender_id=sender_id,
+            content=content,
+        )
+
+        await self.conversation_repo.increment_unread_for_others(
+            conversation_id=conversation_id,
+            sender_id=sender_id,
+        )
+
+        return msg
+
+
+    async def get_messages(
         self,
         *,
-        user_id: int,
-        with_user_id: int,
-        limit: int = 100,
-        before_id: Optional[int] = None,
+        conversation_id: UUID,
+        user_id: UUID,
+        limit: int = 50,
+        before_id: Optional[UUID] = None,
         mark_read: bool = True,
-    ) -> List[Message]:
-            try:
-                await self._ensure_are_friends(user_id, with_user_id)
+    ):
 
-                messages = await self.message_repo.get_conversation(
+        await self._ensure_member(conversation_id, user_id)
+
+        messages = await self.message_repo.get_messages(
+            conversation_id=conversation_id,
+            limit=limit,
+            before_id=before_id,
+        )
+
+        # Mark as read
+        if mark_read and messages:
+            last_msg = messages[-1]
+            updated = await self.message_repo.mark_messages_as_read(
+                conversation_id=conversation_id,
+                user_id=user_id,
+                before_message_id=last_msg.id,
+            )
+
+            if updated:
+                # Reset unread in Redis
+                await reset_unread(user_id, conversation_id)
+
+                # Sync DB unread indexes
+                await self.conversation_repo.update_last_read(
+                    conversation_id=conversation_id,
                     user_id=user_id,
-                    with_user_id=with_user_id,
-                    limit=limit,
-                    before_id=before_id,
+                    message_id=last_msg.id,
                 )
-                if mark_read:
-                    updated = await self.message_repo.mark_messages_as_read(
-                        receiver_id=user_id,
-                        from_user_id=with_user_id,
-                    )
-                    if updated:
-                        await reset_unread(user_id, with_user_id)
 
-                        friendship = await self.friendship_repo.get_friendship_row(
-                            user_id=user_id,
-                            friend_id=with_user_id,
-                        )
+        return messages
 
-                        if friendship:
-                            last_message = updated[-1]
-                            friendship.last_read_message_id = last_message.id
-                            friendship.unread_count = 0
-                            await self.friendship_repo.commit()
 
-                return messages
-            except Exception as e:
-                pass
-
-    async def get_conversation_as_schema(
+    async def get_messages_as_schema(
         self,
         *,
-        user_id: int,
-        with_user_id: int,
-        limit: int = 100,
-        before_id: Optional[int] = None,
-    ) -> list[MessageRead]:
-            try:
-                messages = await self.message_repo.get_conversation(
-                    user_id=user_id,
-                    with_user_id=with_user_id,
-                    limit=limit,
-                    before_id=before_id,
-                )
-                return [MessageRead.model_validate(m) for m in messages]
-            except Exception as e:
-                pass
+        conversation_id: UUID,
+        user_id: UUID,
+        limit: int = 50,
+        before_id: Optional[UUID] = None,
+    ) -> List[MessageRead]:
+
+        messages = await self.get_messages(
+            conversation_id=conversation_id,
+            user_id=user_id,
+            limit=limit,
+            before_id=before_id,
+        )
+
+        return [MessageRead.model_validate(m) for m in messages]
+
+    # for infinite scroll UI
+    async def get_message_page(
+        self,
+        *,
+        conversation_id: UUID,
+        user_id: UUID,
+        limit: int = 50,
+        before_id: Optional[UUID] = None,
+    ) -> MessagePage:
+
+        messages = await self.get_messages(
+            conversation_id=conversation_id,
+            user_id=user_id,
+            limit=limit,
+            before_id=before_id,
+        )
+
+        if not messages:
+            return MessagePage(
+                conversation_id=conversation_id,
+                messages=[],
+                has_more=False,
+                next_before_id=None,
+            )
+
+        # Determine if there are more messages
+        oldest_msg = messages[0]
+
+        # Try fetching one more older message
+        extra = await self.message_repo.get_messages(
+            conversation_id=conversation_id,
+            limit=1,
+            before_id=oldest_msg.id,
+        )
+
+        has_more = len(extra) > 0
+        next_before_id = oldest_msg.id if has_more else None
+
+        return MessagePage(
+            conversation_id=conversation_id,
+            messages=[MessageRead.model_validate(m) for m in messages],
+            has_more=has_more,
+            next_before_id=next_before_id,
+        )

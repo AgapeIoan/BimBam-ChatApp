@@ -6,18 +6,15 @@ from uuid import UUID
 from schemas.user.user_read import UserRead
 
 
-class MessageRead(BaseModel):
+class ConversationMemberRead(BaseModel):
     id: UUID
     conversation_id: UUID
-
-    sender_id: UUID
-    sender: Optional[UserRead] = None  # loaded when needed
-
-    content: str
-    created_at: datetime
-
-    delivered: bool
-    read: bool
+    user: UserRead
+    joined_at: datetime
+    last_read_message_id: Optional[UUID]
+    unread_count: int
+    is_admin: bool
+    is_muted: bool
 
     class Config:
         from_attributes = True
