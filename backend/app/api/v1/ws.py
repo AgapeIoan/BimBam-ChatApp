@@ -1,4 +1,6 @@
 import logging
+import time
+from collections import deque
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, WebSocket
@@ -14,6 +16,7 @@ from app.websockets.events import dispatch_event, send_error
 router = APIRouter()
 logger = logging.getLogger(__name__)
 presence_service = PresenceService()
+MAX_EVENTS_PER_MIN = 120
 
 
 @router.websocket("/ws")
@@ -25,6 +28,7 @@ async def websocket_endpoint(
     await websocket.accept()
     await connection_manager.add(user_id, websocket)
     await presence_service.set_online(user_id)
+    recent_events = deque()
     logger.info("WebSocket connected for user %s", user_id)
     presence_envelope = {
         "type": WebSocketEventType.PRESENCE.value,
@@ -45,6 +49,17 @@ async def websocket_endpoint(
                 logger.warning("Receive error for user %s: %s", user_id, exc)
                 await send_error(websocket, "receive_error", "Failed to parse message")
                 continue
+
+            now = time.time()
+            recent_events.append(now)
+            # Keep only last 60s
+            while recent_events and now - recent_events[0] > 60:
+                recent_events.popleft()
+            if len(recent_events) > MAX_EVENTS_PER_MIN:
+                await send_error(websocket, "rate_limited", "Too many events")
+                await websocket.close(code=1013)
+                logger.warning("Rate limit triggered for user %s", user_id)
+                break
 
             try:
                 envelope = EventEnvelope.model_validate(raw)
