@@ -1,11 +1,12 @@
 from typing import List, Optional
+from uuid import UUID
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
-from sqlalchemy.exc import IntegrityError, DBAPIError
 
-from models.conversation import Conversation
-from models.conversation_member import ConversationMember
+from app.models.conversation import Conversation
+from app.models.conversation_member import ConversationMember
 
 
 class ConversationRepository:
@@ -21,15 +22,11 @@ class ConversationRepository:
         """Create a new conversation (DM or Group)."""
         conv = Conversation(is_group=is_group, name=name)
         self.session.add(conv)
-        try:
-            await self.session.commit()
-            await self.session.refresh(conv)
-        except (IntegrityError, DBAPIError):
-            await self.session.rollback()
-            raise
+        await self.session.flush()
+        await self.session.refresh(conv)
         return conv
 
-    async def get_by_id(self, conversation_id):
+    async def get_by_id(self, conversation_id: UUID):
         """Fetch conversation with members + messages (lazy)."""
         result = await self.session.execute(
             select(Conversation)
@@ -38,13 +35,13 @@ class ConversationRepository:
         )
         return result.scalars().one_or_none()
 
-    async def get_conversation_members(self, conversation_id) -> List[ConversationMember]:
+    async def get_conversation_members(self, conversation_id: UUID) -> List[ConversationMember]:
         result = await self.session.execute(
             select(ConversationMember).where(ConversationMember.conversation_id == conversation_id)
         )
         return result.scalars().all()
 
-    async def get_dm_conversation(self, user_a_id, user_b_id) -> Optional[Conversation]:
+    async def get_dm_conversation(self, user_a_id: UUID, user_b_id: UUID) -> Optional[Conversation]:
         """
         Returns an existing DM conversation between two users, if exists.
         """
@@ -69,7 +66,7 @@ class ConversationRepository:
 
         return None
 
-    async def get_or_create_dm(self, user_a_id, user_b_id) -> Conversation:
+    async def get_or_create_dm(self, user_a_id: UUID, user_b_id: UUID) -> Conversation:
         """
         Get a direct conversation between two users,
         or create a new one if it doesn't exist.
@@ -87,7 +84,7 @@ class ConversationRepository:
 
         return conv
 
-    async def create_group(self, name: str, creator_id) -> Conversation:
+    async def create_group(self, name: str, creator_id: UUID) -> Conversation:
         """
         Create a named group conversation and add creator as admin.
         """
@@ -95,7 +92,7 @@ class ConversationRepository:
         await self.add_member(conv.id, creator_id, is_admin=True)
         return conv
 
-    async def add_member(self, conversation_id, user_id, is_admin=False) -> ConversationMember:
+    async def add_member(self, conversation_id: UUID, user_id: UUID, is_admin: bool = False) -> ConversationMember:
         """
         Add one user to the conversation.
         """
@@ -105,15 +102,11 @@ class ConversationRepository:
             is_admin=is_admin,
         )
         self.session.add(member)
-        try:
-            await self.session.commit()
-            await self.session.refresh(member)
-        except (IntegrityError, DBAPIError):
-            await self.session.rollback()
-            raise
+        await self.session.flush()
+        await self.session.refresh(member)
         return member
 
-    async def remove_member(self, conversation_id, user_id):
+    async def remove_member(self, conversation_id: UUID, user_id: UUID):
         """
         Remove member from conversation.
         """
@@ -129,16 +122,12 @@ class ConversationRepository:
         if not member:
             return None
         
-        try:
-            await self.session.delete(member)
-            await self.session.commit()
-        except (IntegrityError, DBAPIError):
-            await self.session.rollback()
-            raise
+        await self.session.delete(member)
+        await self.session.flush()
 
         return member
 
-    async def is_member(self, conversation_id, user_id) -> bool:
+    async def is_member(self, conversation_id: UUID, user_id: UUID) -> bool:
         """
         Return True if user_id is part of conversation_id.
         """
@@ -151,7 +140,7 @@ class ConversationRepository:
         )
         return result.scalars().one_or_none() is not None
 
-    async def get_user_conversations(self, user_id) -> List[Conversation]:
+    async def get_user_conversations(self, user_id: UUID) -> List[Conversation]:
         """
         Get all conversations (DM & group chats) a user is in.
         """
@@ -164,7 +153,7 @@ class ConversationRepository:
         )
         return result.scalars().all()
 
-    async def update_last_read(self, conversation_id, user_id, message_id):
+    async def update_last_read(self, conversation_id: UUID, user_id: UUID, message_id: UUID):
         """
         Update last read message and reset unread count.
         """
@@ -183,14 +172,10 @@ class ConversationRepository:
         member.last_read_message_id = message_id
         member.unread_count = 0
 
-        try:
-            await self.session.commit()
-        except (IntegrityError, DBAPIError):
-            await self.session.rollback()
-            raise
+        await self.session.flush()
         return member
 
-    async def increment_unread_for_others(self, conversation_id, sender_id):
+    async def increment_unread_for_others(self, conversation_id: UUID, sender_id: UUID):
         """
         Increase unread count for all members of a conversation except the sender.
         """
@@ -200,15 +185,4 @@ class ConversationRepository:
             if m.user_id != sender_id:
                 m.unread_count += 1
     
-        try:
-            await self.session.commit()
-        except (IntegrityError, DBAPIError):
-            await self.session.rollback()
-            raise
-
-    async def commit(self):
-        try:
-            await self.session.commit()
-        except (IntegrityError, DBAPIError):
-            await self.session.rollback()
-            raise
+        await self.session.flush()

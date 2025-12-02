@@ -2,14 +2,14 @@ from typing import List, Optional
 from fastapi import HTTPException
 from uuid import UUID
 
-from repositories.message_repository import MessageRepository
-from repositories.conversation_repository import ConversationRepository
-from repositories.user_repository import UserRepository
+from app.repositories.message_repository import MessageRepository
+from app.repositories.conversation_repository import ConversationRepository
+from app.repositories.user_repository import UserRepository
 
-from core.redis_client import increment_unread, reset_unread
+from app.core.redis_client import increment_unread, reset_unread
 
-from schemas.message.message_read import MessageRead
-from schemas.message.message_page import MessagePage
+from app.schemas.message.message_read import MessageRead
+from app.schemas.message.message_page import MessagePage
 
 
 class MessageService:

@@ -1,14 +1,16 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError, DBAPIError
-from sqlalchemy import select
-from models.user import User
+from uuid import UUID
 from datetime import datetime, timezone
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
+from app.models.user import User
 
 class UserRepository:
     def __init__(self, session: AsyncSession):
         self._session = session
 
-    async def get_by_id(self, user_id: int) -> User | None:
+    async def get_by_id(self, user_id: UUID) -> User | None:
         result = await self._session.execute(select(User).where(User.id == user_id))
         return result.scalars().one_or_none()
 
@@ -38,23 +40,13 @@ class UserRepository:
             avatar_url=avatar_url
         )
         self._session.add(user)
-        try:
-            await self._session.commit()
-            await self._session.refresh(user)
-        except (IntegrityError, DBAPIError):
-            await self._session.rollback()
-            raise
-
+        await self._session.flush()
+        await self._session.refresh(user)
         return user
 
-    async def update_last_seen(self, user_id: int):
+    async def update_last_seen(self, user_id: UUID):
         result = await self._session.execute(select(User).where(User.id == user_id))
         user = result.scalars().one()
-        
         user.last_seen = datetime.now(timezone.utc)
-        try:
-            await self._session.commit()
-        except (IntegrityError, DBAPIError):
-            await self._session.rollback()
-            raise
+        await self._session.flush()
         return user

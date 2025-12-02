@@ -2,11 +2,10 @@ from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError, DBAPIError
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from models.message import Message
+from app.models.message import Message
 
 class MessageRepository:
 
@@ -27,13 +26,8 @@ class MessageRepository:
         )
 
         self.session.add(msg)
-        try:
-            await self.session.commit()
-            await self.session.refresh(msg)
-        except (IntegrityError, DBAPIError):
-            await self.session.rollback()
-            raise
-
+        await self.session.flush()
+        await self.session.refresh(msg)
         return msg
 
     async def get_messages(
@@ -105,17 +99,6 @@ class MessageRepository:
             msg.read = True
 
         if unread_messages:
-            try:
-                await self.session.commit()
-            except (IntegrityError, DBAPIError):
-                await self.session.rollback()
-                raise
+            await self.session.flush()
 
         return unread_messages
-
-    async def commit(self):
-        try:
-            await self.session.commit()
-        except (IntegrityError, DBAPIError):
-            await self.session.rollback()
-            raise

@@ -4,7 +4,7 @@ from sqlalchemy import ForeignKey, DateTime, UniqueConstraint, Integer, func
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
-from db.base import Base
+from app.db.base import Base
 
 
 class Friendship(Base):

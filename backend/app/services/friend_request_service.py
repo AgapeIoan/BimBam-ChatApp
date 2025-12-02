@@ -1,8 +1,11 @@
+from uuid import UUID
+
 from fastapi import HTTPException
-from repositories.friendship_repository import FriendshipRepository
-from repositories.friend_request_repository import FriendRequestRepository
-from repositories.user_repository import UserRepository
-from models.enums import FriendRequestStatus
+
+from app.repositories.friendship_repository import FriendshipRepository
+from app.repositories.friend_request_repository import FriendRequestRepository
+from app.repositories.user_repository import UserRepository
+from app.models.enums import FriendRequestStatus
 
 
 class FriendRequestService:
@@ -18,7 +21,7 @@ class FriendRequestService:
 
     async def send_friend_request(
         self,
-        from_user_id: int,
+        from_user_id: UUID,
         to_email: str,
     ):
         user_to = await self.user_repo.get_by_email(to_email)
@@ -39,7 +42,7 @@ class FriendRequestService:
         
         return await self.friend_request_repo.create_friend_request(from_user_id, to_user_id)
 
-    async def accept_friend_request(self, request_id: int, current_user_id: int):
+    async def accept_friend_request(self, request_id: UUID, current_user_id: UUID):
         fr = await self.friend_request_repo.get_friend_request_by_id(request_id)
 
         if not fr or fr.to_user_id != current_user_id:
@@ -52,7 +55,7 @@ class FriendRequestService:
         await self.friendship_repo.create_friendship_pair(fr.from_user_id, fr.to_user_id)
         return fr
 
-    async def decline_friend_request(self, request_id: int, current_user_id: int):
+    async def decline_friend_request(self, request_id: UUID, current_user_id: UUID):
         fr = await self.friend_request_repo.get_friend_request_by_id(request_id)
 
         if not fr or fr.to_user_id != current_user_id:
@@ -63,8 +66,8 @@ class FriendRequestService:
         
         return await self.friend_request_repo.update_friend_request_status(fr, FriendRequestStatus.DECLINED)
 
-    async def incoming_requests(self, user_id: int):
+    async def incoming_requests(self, user_id: UUID):
         return await self.friend_request_repo.get_incoming_requests(user_id)
 
-    async def outgoing_requests(self, user_id: int):
+    async def outgoing_requests(self, user_id: UUID):
         return await self.friend_request_repo.get_outgoing_requests(user_id)

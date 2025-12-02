@@ -1,14 +1,16 @@
 from typing import List
+from uuid import UUID
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError, DBAPIError
 from sqlalchemy import select
-from models.friendship import Friendship
+
+from app.models.friendship import Friendship
 
 class FriendshipRepository:
     def __init__(self, session: AsyncSession):
         self._session = session
         
-    async def are_friends(self, user_id: int, friend_id: int) -> bool:
+    async def are_friends(self, user_id: UUID, friend_id: UUID) -> bool:
         result = await self._session.execute(
             select(Friendship).where(
                 Friendship.user_id == user_id,
@@ -19,21 +21,17 @@ class FriendshipRepository:
         return row is not None
 
 
-    async def create_friendship_pair(self, user_a: int, user_b: int):
+    async def create_friendship_pair(self, user_a: UUID, user_b: UUID):
         f1 = Friendship(user_id=user_a, friend_id=user_b)
         f2 = Friendship(user_id=user_b, friend_id=user_a)
 
         self._session.add_all([f1, f2])
 
-        try:
-            await self._session.commit()
-        except (IntegrityError, DBAPIError):
-            await self._session.rollback()
-            raise
+        await self._session.flush()
 
         return f1, f2
 
-    async def get_friends(self, user_id: int) -> List[Friendship]:
+    async def get_friends(self, user_id: UUID) -> List[Friendship]:
         result = await self._session.execute(
             select(Friendship)
             .where(Friendship.user_id == user_id)

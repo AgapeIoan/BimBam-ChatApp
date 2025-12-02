@@ -1,24 +1,26 @@
 from typing import List, Optional
-from models.friend_request import FriendRequest
-from models.enums import FriendRequestStatus
+from uuid import UUID
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError, DBAPIError
 from sqlalchemy import select
+
+from app.models.friend_request import FriendRequest
+from app.models.enums import FriendRequestStatus
 
 
 class FriendRequestRepository:
     def __init__(self, session: AsyncSession):
         self._session = session
 
-    async def get_friend_request_by_id(self, request_id: int) -> Optional[FriendRequest]:
+    async def get_friend_request_by_id(self, request_id: UUID) -> Optional[FriendRequest]:
         result = await self._session.execute(select(FriendRequest).where(FriendRequest.id == request_id))
         return result.scalars().one_or_none()
 
 
     async def get_friend_request(
         self,
-        from_user_id: int,
-        to_user_id: int,
+        from_user_id: UUID,
+        to_user_id: UUID,
     ) -> Optional[FriendRequest]:
 
         result = await self._session.execute(
@@ -32,8 +34,8 @@ class FriendRequestRepository:
 
     async def create_friend_request(          
         self,
-        from_user_id: int,
-        to_user_id: int,
+        from_user_id: UUID,
+        to_user_id: UUID,
     ) -> FriendRequest:
 
         fr = FriendRequest(
@@ -42,13 +44,9 @@ class FriendRequestRepository:
             status=FriendRequestStatus.PENDING,
         )
         self._session.add(fr)
-        try:
-            await self._session.commit()
-            await self._session.refresh(fr)
-            return fr
-        except (IntegrityError,DBAPIError):
-            await self._session.rollback()
-            raise
+        await self._session.flush()
+        await self._session.refresh(fr)
+        return fr
 
     async def update_friend_request_status(
         self,
@@ -57,18 +55,13 @@ class FriendRequestRepository:
     ) -> FriendRequest:
 
         fr.status = status
-        try:
-            await self._session.commit()
-            await self._session.refresh(fr)
-        except (IntegrityError,DBAPIError):
-            await self._session.rollback()
-            raise
-
+        await self._session.flush()
+        await self._session.refresh(fr)
         return fr
 
     async def get_incoming_requests(
         self,
-        user_id: int,
+        user_id: UUID,
     ) -> List[FriendRequest]:
 
         result = await self._session.execute(
@@ -83,7 +76,7 @@ class FriendRequestRepository:
     
     async def get_outgoing_requests(
         self,
-        user_id: int,
+        user_id: UUID,
     ) -> List[FriendRequest]:
 
         result = await self._session.execute(
