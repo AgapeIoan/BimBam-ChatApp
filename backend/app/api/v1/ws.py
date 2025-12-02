@@ -25,6 +25,7 @@ async def websocket_endpoint(
     await websocket.accept()
     await connection_manager.add(user_id, websocket)
     await presence_service.set_online(user_id)
+    logger.info("WebSocket connected for user %s", user_id)
     presence_envelope = {
         "type": WebSocketEventType.PRESENCE.value,
         "data": {"userId": str(user_id), "isOnline": True},
@@ -38,6 +39,7 @@ async def websocket_endpoint(
             try:
                 raw = await websocket.receive_json()
             except WebSocketDisconnect:
+                logger.info("WebSocket disconnect for user %s", user_id)
                 break
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Receive error for user %s: %s", user_id, exc)

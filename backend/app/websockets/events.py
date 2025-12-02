@@ -26,6 +26,7 @@ from app.websockets.connection_manager import connection_manager
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+MAX_MESSAGE_LENGTH = 4000
 
 
 def serialize_message(msg) -> Dict[str, Any]:
@@ -59,6 +60,10 @@ async def handle_message_send(
     except Exception as exc:  # noqa: BLE001
         logger.warning("Validation failed for message_send: %s", exc)
         await send_error(websocket, "validation_failed", "Invalid message payload")
+        return
+
+    if len(payload.content) > MAX_MESSAGE_LENGTH:
+        await send_error(websocket, "validation_failed", "Message too long")
         return
 
     correlation_id = data.get("correlationId")
