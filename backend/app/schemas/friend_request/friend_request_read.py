@@ -1,11 +1,15 @@
 from datetime import datetime
+from uuid import UUID
+
 from pydantic import BaseModel, Field
-from models.enums import FriendRequestStatus
+
+from app.models.enums import FriendRequestStatus
+
 
 class FriendRequestRead(BaseModel):
-    id: int = Field(..., alias="id")
-    from_user_id: int = Field(..., alias="fromUserId")
-    to_user_id: int = Field(..., alias="toUserId")
+    id: UUID = Field(..., alias="id")
+    from_user_id: UUID = Field(..., alias="fromUserId")
+    to_user_id: UUID = Field(..., alias="toUserId")
     status: FriendRequestStatus = Field(..., alias="status")
     created_at: datetime = Field(..., alias="createdAt")
 
