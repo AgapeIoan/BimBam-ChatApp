@@ -92,6 +92,11 @@ class ConnectionManager:
         for uid in user_ids:
             await self.send_to_user(uid, message)
 
+    async def all_user_ids(self) -> Set[UUID]:
+        """Return all user IDs that currently have active connections."""
+        async with self._lock:
+            return set(self._connections.keys())
+
 
 # Singleton instance
 connection_manager = ConnectionManager()

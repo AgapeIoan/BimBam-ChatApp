@@ -6,6 +6,7 @@ from starlette.websockets import WebSocketDisconnect
 
 from app.api.deps.websocket_auth import websocket_auth
 from app.schemas.websocket.envelope import EventEnvelope
+from app.schemas.websocket.event_types import WebSocketEventType
 from app.services.presence_service import PresenceService
 from app.websockets.connection_manager import connection_manager
 from app.websockets.events import dispatch_event, send_error
@@ -24,6 +25,13 @@ async def websocket_endpoint(
     await websocket.accept()
     await connection_manager.add(user_id, websocket)
     await presence_service.set_online(user_id)
+    presence_envelope = {
+        "type": WebSocketEventType.PRESENCE.value,
+        "data": {"userId": str(user_id), "isOnline": True},
+    }
+    others = (await connection_manager.all_user_ids()) - {user_id}
+    if others:
+        await connection_manager.broadcast(others, presence_envelope)
 
     try:
         while True:
@@ -49,3 +57,10 @@ async def websocket_endpoint(
         has_other = await connection_manager.has_connections(user_id)
         if not has_other:
             await presence_service.set_offline(user_id)
+            presence_envelope = {
+                "type": WebSocketEventType.PRESENCE.value,
+                "data": {"userId": str(user_id), "isOnline": False},
+            }
+            others = (await connection_manager.all_user_ids()) - {user_id}
+            if others:
+                await connection_manager.broadcast(others, presence_envelope)
