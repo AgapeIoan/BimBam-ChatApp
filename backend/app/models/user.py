@@ -41,8 +41,3 @@ class User(Base):
         back_populates="sender",
         foreign_keys="Message.sender_id"
     )
-    messages_received: Mapped[List["Message"]] = relationship(
-        "Message",
-        back_populates="receiver",
-        foreign_keys="Message.receiver_id"
-    )

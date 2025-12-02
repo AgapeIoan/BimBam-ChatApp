@@ -37,7 +37,7 @@ class Message(Base):
     read: Mapped[bool] = mapped_column(Boolean, default=False)
 
     conversation = relationship("Conversation", back_populates="messages")
-    sender = relationship("User")
+    sender = relationship("User", back_populates="messages_sent", foreign_keys=[sender_id])
 
     __table_args__ = (
         Index("idx_msg_conversation_created", "conversation_id", "created_at"),
