@@ -102,3 +102,14 @@ class MessageRepository:
             await self.session.flush()
 
         return unread_messages
+
+    async def mark_delivered(self, message_id: UUID) -> Optional[Message]:
+        """
+        Mark a message as delivered.
+        """
+        msg = await self.get_by_id(message_id)
+        if not msg:
+            return None
+        msg.delivered = True
+        await self.session.flush()
+        return msg
