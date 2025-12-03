@@ -9,4 +9,7 @@ PyJWT
 pytest
 pytest-asyncio
 httpx
+testcontainers
+fakeredis
 asyncpg
+aiosqlite

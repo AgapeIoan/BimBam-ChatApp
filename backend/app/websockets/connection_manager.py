@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import json
 from typing import Dict, Set
 from uuid import UUID
 
@@ -59,6 +60,14 @@ class ConnectionManager:
         Send a payload to all active sockets for the user.
         Returns True if at least one send succeeds.
         """
+        # Serialize UUIDs and other non-JSON-native types defensively
+        serialized = None
+        try:
+            serialized = json.dumps(message, default=str)
+        except TypeError:
+            logger.warning("Failed to serialize message for user %s", user_id)
+            return False
+
         sockets = await self.get_connections(user_id)
         if not sockets:
             return False
@@ -68,8 +77,13 @@ class ConnectionManager:
 
         for ws in sockets:
             try:
-                await ws.send_json(message)
-                delivered = True
+                if hasattr(ws, "send_text"):
+                    await ws.send_text(serialized)
+                    delivered = True
+                else:
+                    # Fallback for test doubles
+                    await ws.send_json(json.loads(serialized))
+                    delivered = True
             except WebSocketDisconnect:
                 dead_sockets.add(ws)
             except Exception as exc:  # noqa: BLE001

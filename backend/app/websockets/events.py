@@ -1,4 +1,5 @@
 import logging
+import json
 from typing import Any, Dict, Optional, Sequence, Set
 from uuid import UUID
 
@@ -47,7 +48,7 @@ async def send_error(websocket: WebSocket, code: str, detail: str, correlation_i
         "type": WebSocketEventType.ERROR.value,
         "data": payload.model_dump(by_alias=True),
     }
-    await websocket.send_json(envelope)
+    await websocket.send_text(json.dumps(envelope, default=str))
 
 
 async def handle_message_send(
@@ -121,11 +122,14 @@ async def handle_message_send(
         delivered=delivered,
         message=message_dict,
     )
-    await websocket.send_json(
-        {
-            "type": WebSocketEventType.MESSAGE_ACK.value,
-            "data": ack.model_dump(by_alias=True),
-        }
+    await websocket.send_text(
+        json.dumps(
+            {
+                "type": WebSocketEventType.MESSAGE_ACK.value,
+                "data": ack.model_dump(by_alias=True),
+            },
+            default=str,
+        )
     )
 
 
@@ -221,11 +225,14 @@ async def handle_mark_read(
         status="ok",
         delivered=True,
     )
-    await websocket.send_json(
-        {
-            "type": WebSocketEventType.MESSAGE_ACK.value,
-            "data": ack.model_dump(by_alias=True),
-        }
+    await websocket.send_text(
+        json.dumps(
+            {
+                "type": WebSocketEventType.MESSAGE_ACK.value,
+                "data": ack.model_dump(by_alias=True),
+            },
+            default=str,
+        )
     )
 
 
