@@ -55,6 +55,7 @@ class ConversationRepository:
             .having(
                 func.count(ConversationMember.user_id) == 2
             )
+            .options(selectinload(Conversation.members))
         )
 
         conversations = result.scalars().all()

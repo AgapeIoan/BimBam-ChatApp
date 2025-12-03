@@ -21,6 +21,7 @@ os.environ.setdefault("DATABASE__DB_PORT", "5432")
 os.environ.setdefault("DATABASE__DB_USER", "user")
 os.environ.setdefault("DATABASE__DB_PASSWORD", "pass")
 os.environ.setdefault("DATABASE__DB_NAME", "testdb")
+os.environ.setdefault("SKIP_DB_INIT_ON_STARTUP", "1")
 
 
 def _init_fake_redis():

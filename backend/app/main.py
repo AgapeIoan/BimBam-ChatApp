@@ -1,10 +1,23 @@
+import os
+
 from fastapi import FastAPI
 import uvicorn
+
 from .core.config import get_settings
 from .api.v1 import ws
+from app.db.init_db import init_db
 
 app = FastAPI()
 settings = get_settings()
+
+
+@app.on_event("startup")
+async def startup_event():
+    skip = os.getenv("SKIP_DB_INIT_ON_STARTUP", "").lower() in {"1", "true", "yes"}
+    if skip:
+        return
+
+    await init_db()
 
 
 @app.get("/")
