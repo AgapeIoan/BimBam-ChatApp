@@ -1,4 +1,15 @@
 pydantic
-pydantic-settings
+pydantic_settings
 fastapi
 uvicorn
+redis
+sqlalchemy
+pydantic[email]
+httpx
+itsdangerous
+authlib
+asyncpg
+python-jose[cryptography]
+python-dotenv
+alembic
+psycopg2-binary
