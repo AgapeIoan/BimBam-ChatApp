@@ -1,7 +1,15 @@
 pydantic
 pydantic-settings
 fastapi
-uvicorn
 redis
 sqlalchemy
 pydantic[email]
+PyJWT
+pytest
+pytest-asyncio
+httpx
+testcontainers
+fakeredis
+asyncpg
+aiosqlite
+uvicorn[standard]

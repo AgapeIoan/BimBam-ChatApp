@@ -64,6 +64,34 @@ class MessageService:
 
         return msg
 
+    async def mark_delivered(self, message_id: UUID):
+        return await self.message_repo.mark_delivered(message_id)
+
+    async def mark_read(
+        self,
+        *,
+        conversation_id: UUID,
+        user_id: UUID,
+        before_message_id: Optional[UUID] = None,
+    ):
+        await self._ensure_member(conversation_id, user_id)
+        updated = await self.message_repo.mark_messages_as_read(
+            conversation_id=conversation_id,
+            user_id=user_id,
+            before_message_id=before_message_id,
+        )
+
+        if updated:
+            await reset_unread(user_id, conversation_id)
+            last_msg = updated[-1]
+            await self.conversation_repo.update_last_read(
+                conversation_id=conversation_id,
+                user_id=user_id,
+                message_id=last_msg.id,
+            )
+
+        return updated
+
 
     async def get_messages(
         self,

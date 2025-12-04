@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import BaseModel
 from uuid import UUID
 
-from schemas.user.user_read import UserRead
+from app.schemas.user.user_read import UserRead
 
 
 class ConversationMemberRead(BaseModel):
