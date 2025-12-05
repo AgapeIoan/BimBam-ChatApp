@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
-from app.models.conversation import Conversation
-from app.models.conversation_member import ConversationMember
+from backend.app.models.conversation import Conversation
+from backend.app.models.conversation_member import ConversationMember
 
 
 class ConversationRepository:
@@ -142,16 +142,21 @@ class ConversationRepository:
 
     async def get_user_conversations(self, user_id: UUID) -> List[Conversation]:
         """
-        Get all conversations (DM & group chats) a user is in.
+        Get all conversations (DM & group chats) a user is in,
+        with members + member.users + messages preloaded.
         """
         result = await self.session.execute(
             select(Conversation)
             .join(ConversationMember)
             .where(ConversationMember.user_id == user_id)
-            .options(selectinload(Conversation.members))
+            .options(
+                selectinload(Conversation.members).selectinload(ConversationMember.user),
+                selectinload(Conversation.messages),
+            )
             .order_by(Conversation.created_at.desc())
         )
         return result.scalars().all()
+
 
     async def update_last_read(self, conversation_id: UUID, user_id: UUID, message_id: UUID):
         """

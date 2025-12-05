@@ -4,9 +4,9 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import String, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import uuid
-from app.db.base import Base
-from app.models.friend_request import FriendRequest
-from app.models.message import Message
+from backend.app.db.base_class import Base
+from backend.app.models.friend_request import FriendRequest
+from backend.app.models.message import Message
 
 
 class User(Base):

@@ -1,14 +1,18 @@
 from typing import List, Optional
 from fastapi import HTTPException
 
-from repositories.conversation_repository import ConversationRepository
-from repositories.user_repository import UserRepository
-from repositories.message_repository import MessageRepository
-from schemas.conversation.conversation_read import ConversationRead
-from schemas.message.message_read import MessageRead
-from models.conversation import Conversation
-from models.message import Message
+from backend.app.repositories.conversation_repository import ConversationRepository
+from backend.app.repositories.user_repository import UserRepository
+from backend.app.repositories.message_repository import MessageRepository
+from backend.app.schemas.conversation.conversation_read import ConversationRead
+from backend.app.schemas.message.message_read import MessageRead
+from backend.app.models.conversation import Conversation
+from backend.app.models.message import Message
 
+from uuid import UUID
+from backend.app.schemas.conversation.conversation_preview import ConversationPreview
+from backend.app.schemas.user.user_read import UserRead
+from backend.app.models.conversation_member import ConversationMember
 
 class ConversationService:
 
@@ -21,6 +25,54 @@ class ConversationService:
         self.conversation_repo = conversation_repo
         self.user_repo = user_repo
         self.message_repo = message_repo
+
+    async def get_user_conversation_previews(self, user_id: UUID) -> List[ConversationPreview]:
+        """
+        Main method for: 'list all conversations of a user'
+        """
+        conversations = await self.conversation_repo.get_user_conversations(user_id)
+
+        previews: List[ConversationPreview] = []
+
+        for conv in conversations:
+            # Last message (if any)
+            last_msg = None
+            if conv.messages:
+                last_msg = max(conv.messages, key=lambda m: m.created_at)
+
+            # Membership row for THIS user (for unread_count)
+            my_member = next(
+                (m for m in conv.members if m.user_id == user_id),
+                None,
+            )
+            unread_count = my_member.unread_count if my_member else 0
+
+            # Other users for DMs
+            other_users = [
+                UserRead.model_validate(m.user)
+                for m in conv.members
+                if m.user_id != user_id and m.user is not None
+            ]
+
+            previews.append(
+                ConversationPreview(
+                    id=conv.id,
+                    is_group=conv.is_group,
+                    name=conv.name,
+                    last_message=last_msg.content if last_msg else None,
+                    last_message_at=last_msg.created_at if last_msg else None,
+                    unread_count=unread_count,
+                    other_users=other_users,
+                )
+            )
+
+        # Sort by last message time (most recent first)
+        previews.sort(
+            key=lambda p: (p.last_message_at is not None, p.last_message_at),
+            reverse=True,
+        )
+
+        return previews
 
 
     async def get_or_create_dm(self, user_a_id, user_b_id) -> Conversation:
