@@ -13,6 +13,16 @@ from app.db.init_db import init_db
 
 settings = get_settings()
 
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    skip = os.getenv("SKIP_DB_INIT_ON_STARTUP", "").lower() in {"1", "true", "yes"}
+    if not skip:
+        await init_db()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.AUTH.JWT_SECRET_KEY, 
@@ -27,17 +37,6 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api/v1")
-
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    skip = os.getenv("SKIP_DB_INIT_ON_STARTUP", "").lower() in {"1", "true", "yes"}
-    if not skip:
-        await init_db()
-    yield
-
-
-app = FastAPI(lifespan=lifespan)
-
 
 @app.get("/")
 def read_root():
