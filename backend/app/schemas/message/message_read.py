@@ -20,6 +20,3 @@ class MessageRead(BaseModel):
 
     delivered: bool
     read: bool
-
-    class Config:
-        from_attributes = True

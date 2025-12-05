@@ -36,7 +36,7 @@ async def websocket_auth(
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="Missing token")
 
     try:
-        payload = jwt.decode(token, settings.AUTH.JWT_SECRET, algorithms=[settings.AUTH.JWT_ALGORITHM])
+        payload = jwt.decode(token, settings.AUTH.JWT_SECRET_KEY, algorithms=[settings.AUTH.JWT_ALGORITHM])
     except InvalidTokenError as exc:
         logger.warning("Invalid websocket token: %s", exc)
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid token")
