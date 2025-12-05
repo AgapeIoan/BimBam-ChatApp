@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class FriendshipRead(BaseModel):
@@ -12,6 +12,4 @@ class FriendshipRead(BaseModel):
     last_read_message_id: UUID | None = Field(None, alias="lastReadMessageId")
     unread_count: int = Field(..., alias="unreadCount")
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)

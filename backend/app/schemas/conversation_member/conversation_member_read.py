@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from uuid import UUID
 
 from app.schemas.user.user_read import UserRead
@@ -16,5 +16,4 @@ class ConversationMemberRead(BaseModel):
     is_admin: bool
     is_muted: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

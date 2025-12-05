@@ -6,8 +6,8 @@ from repositories.user_repository import UserRepository
 from repositories.message_repository import MessageRepository
 from app.schemas.conversation.conversation_read import ConversationRead
 from app.schemas.message.message_read import MessageRead
-from models.conversation import Conversation
-from models.message import Message
+from app.models.conversation import Conversation
+from app.models.message import Message
 
 
 class ConversationService:
