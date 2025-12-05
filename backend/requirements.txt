@@ -1,7 +1,6 @@
 pydantic
 pydantic_settings
 fastapi
-uvicorn
 redis
 sqlalchemy
 pydantic[email]
@@ -13,3 +12,11 @@ python-jose[cryptography]
 python-dotenv
 alembic
 psycopg2-binary
+PyJWT
+pytest
+pytest-asyncio
+testcontainers
+fakeredis
+aiosqlite
+uvicorn[standard]
+

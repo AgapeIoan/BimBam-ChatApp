@@ -15,7 +15,8 @@ AsyncSessionLocal = async_sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=async_engine,
-    class_=AsyncSession
+    class_=AsyncSession,
+    expire_on_commit=False,
 )
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:

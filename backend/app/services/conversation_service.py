@@ -4,8 +4,8 @@ from fastapi import HTTPException
 from repositories.conversation_repository import ConversationRepository
 from repositories.user_repository import UserRepository
 from repositories.message_repository import MessageRepository
-from schemas.conversation.conversation_read import ConversationRead
-from schemas.message.message_read import MessageRead
+from app.schemas.conversation.conversation_read import ConversationRead
+from app.schemas.message.message_read import MessageRead
 from models.conversation import Conversation
 from models.message import Message
 

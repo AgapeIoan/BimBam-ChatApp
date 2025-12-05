@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "DEBUG"
     DATABASE: DatabaseSettings
     REDIS_URL: str
-    AUTH: AuthSettings
+    AUTH: AuthSettings = AuthSettings()
 
     model_config = SettingsConfigDict(env_file=".env", env_nested_delimiter="__")
 
