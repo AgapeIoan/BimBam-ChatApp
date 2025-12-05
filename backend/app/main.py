@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
@@ -10,7 +11,6 @@ from app.api.v1.routes_handler import api_router
 from app.core.config import get_settings
 from app.db.init_db import init_db
 
-app = FastAPI()
 settings = get_settings()
 
 app.add_middleware(
@@ -28,13 +28,15 @@ app.add_middleware(
 
 app.include_router(api_router, prefix="/api/v1")
 
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(_: FastAPI):
     skip = os.getenv("SKIP_DB_INIT_ON_STARTUP", "").lower() in {"1", "true", "yes"}
-    if skip:
-        return
+    if not skip:
+        await init_db()
+    yield
 
-    await init_db()
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/")
