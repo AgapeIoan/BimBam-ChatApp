@@ -65,6 +65,7 @@ def test_happy_path_message_delivery(client, user_factory, conversation_factory,
                     ack = msg
 
             assert ack["data"]["status"] == "ok"
+            assert ack["data"]["correlationId"] == "corr-1"
             assert ack["data"]["delivered"] is True
             assert ack["data"]["message"]["content"] == "hello"
     finally:
@@ -113,6 +114,7 @@ def test_offline_recipient_persists_message(client, user_factory, conversation_f
                 if msg["type"] == "message_ack":
                     ack = msg
 
+            assert ack["data"]["correlationId"] == "corr-2"
             assert ack["data"]["delivered"] is False
     finally:
         app.dependency_overrides.pop(websocket_auth, None)
