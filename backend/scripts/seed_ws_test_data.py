@@ -30,7 +30,7 @@ from app.repositories.user_repository import UserRepository  # noqa: E402
 
 
 def _user_id_from_token(token: str, settings: Settings) -> UUID:
-    payload = jwt.decode(token, settings.AUTH.JWT_SECRET, algorithms=[settings.AUTH.JWT_ALGORITHM])
+    payload = jwt.decode(token, settings.AUTH.JWT_SECRET_KEY, algorithms=[settings.AUTH.JWT_ALGORITHM])
     sub = payload.get("sub")
     if not sub:
         raise ValueError("Token missing subject (sub)")
