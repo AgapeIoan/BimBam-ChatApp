@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
-from jose import jwt, JWTError
+from typing import Optional
+
+from jose import JWTError, jwt
 
 from app.core.config import get_settings
 

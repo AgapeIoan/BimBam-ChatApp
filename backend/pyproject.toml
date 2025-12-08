@@ -1,0 +1,15 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["app", "tests"]
+extend-exclude = [".venv", ".pytest_cache", ".ruff_cache", "__pycache__"]
+
+[tool.ruff.lint]
+# Keep defaults (E4/E7/E9/F) for now; can tighten later.
+select = ["E4", "E7", "E9", "F"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+known_first_party = ["app", "tests"]
+skip = [".venv", ".pytest_cache", ".ruff_cache", "__pycache__"]

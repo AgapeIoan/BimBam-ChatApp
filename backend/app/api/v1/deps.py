@@ -1,12 +1,12 @@
-from fastapi import Depends, HTTPException, status, Cookie
 from uuid import UUID
 
+from fastapi import Cookie, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_async_session
 from app.repositories.user_repository import UserRepository
-from app.utils.jwt_utils import decode_access_token
 from app.services.user_service import UserService
+from app.utils.jwt_utils import decode_access_token
 
 
 async def get_current_user(acces_token: str = Cookie(default=None, alias="access_token"), session: AsyncSession = Depends(get_async_session)):

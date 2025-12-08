@@ -1,17 +1,16 @@
-from uuid import uuid4
 
-from fastapi import APIRouter, Request, Depends, Response, Query
-from fastapi.responses import RedirectResponse, JSONResponse
 from authlib.integrations.starlette_client import OAuth
-from starlette.config import Config as StarletteConfig
+from fastapi import APIRouter, Depends, Query, Request
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.config import Config as StarletteConfig
 
+from app.api.v1.deps import get_current_user, get_user_service
 from app.core.config import get_settings
-from app.db.session import get_async_session 
+from app.db.session import get_async_session
+from app.repositories.user_repository import UserRepository
 from app.services.user_service import UserService
 from app.utils.jwt_utils import create_access_token
-from app.api.v1.deps import get_current_user, get_user_service
-from app.repositories.user_repository import UserRepository
 
 settings = get_settings()
 

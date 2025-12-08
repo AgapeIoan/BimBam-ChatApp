@@ -1,6 +1,5 @@
 import asyncio
 import os
-from typing import AsyncGenerator
 
 import fakeredis.aioredis
 import pytest
@@ -9,8 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.api.deps.websocket_auth import websocket_auth
 from app.core import redis_client
-from app.db.base import Base
 from app.db import session as session_module
+from app.db.base import Base
 from app.websockets.connection_manager import connection_manager
 
 # Ensure base env defaults for settings loading
@@ -163,8 +162,8 @@ def ws_auth_override():
     async def fake_auth(websocket: WebSocket):
         token = websocket.query_params.get("token")
         if not token or token not in token_user_map:
-            from fastapi.exceptions import WebSocketException
             from fastapi import status
+            from fastapi.exceptions import WebSocketException
 
             raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="Missing token")
 
