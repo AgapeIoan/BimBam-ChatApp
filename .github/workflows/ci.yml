@@ -19,7 +19,7 @@ jobs:
       PYTHONPATH: .
       SKIP_DB_INIT_ON_STARTUP: "1"
       REDIS_URL: redis://localhost:6379/0
-      DATABASE__DB_URL: sqlite+aiosqlite:///:memory:
+      DATABASE__DB_URL: "sqlite+aiosqlite:///:memory:"
       DATABASE__DB_HOST: localhost
       DATABASE__DB_PORT: "5432"
       DATABASE__DB_USER: user
