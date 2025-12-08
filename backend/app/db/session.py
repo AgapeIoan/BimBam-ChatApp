@@ -2,6 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 from app.core.config import get_settings
 from typing import AsyncGenerator
 
+from app import models  # noqa: F401 to register models with Base
+
 settings = get_settings()
 
 async_engine = create_async_engine(

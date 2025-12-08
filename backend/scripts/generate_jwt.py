@@ -5,7 +5,7 @@ import jwt
 
 
 def main():
-    secret = os.getenv("AUTH__JWT_SECRET", "change_me")
+    secret = os.getenv("AUTH__JWT_SECRET_KEY", "change_me")
     algo = os.getenv("AUTH__JWT_ALGORITHM", "HS256")
 
     users = ["user_a", "user_b"]

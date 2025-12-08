@@ -36,7 +36,7 @@ class UserRepository:
             provider=provider,
             provider_id=provider_id,
             email=email,
-            username=username,
+            username="",
             avatar_url=avatar_url
         )
         self._session.add(user)
@@ -49,4 +49,10 @@ class UserRepository:
         user = result.scalars().one()
         user.last_seen = datetime.now(timezone.utc)
         await self._session.flush()
+        return user
+
+    async def update_username(self, user: User, new_username: str) -> User:
+        user.username = new_username
+        await self._session.flush()
+        await self._session.refresh(user)
         return user

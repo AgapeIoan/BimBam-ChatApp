@@ -21,7 +21,7 @@ PROJECT_ROOT = CURRENT_DIR.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from app.core.config import get_settings, Settings
+from app.core.config import Settings, get_settings
 from app.db.init_db import init_db
 from app.db.session import AsyncSessionLocal
 from app.models.user import User
@@ -30,7 +30,7 @@ from app.repositories.user_repository import UserRepository
 
 
 def _user_id_from_token(token: str, settings: Settings) -> UUID:
-    payload = jwt.decode(token, settings.AUTH.JWT_SECRET, algorithms=[settings.AUTH.JWT_ALGORITHM])
+    payload = jwt.decode(token, settings.AUTH.JWT_SECRET_KEY, algorithms=[settings.AUTH.JWT_ALGORITHM])
     sub = payload.get("sub")
     if not sub:
         raise ValueError("Token missing subject (sub)")
