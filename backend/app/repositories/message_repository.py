@@ -1,11 +1,10 @@
 from typing import List, Optional
 from uuid import UUID
 
+from app.models.message import Message
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-
-from app.models.message import Message
 
 
 class MessageRepository:

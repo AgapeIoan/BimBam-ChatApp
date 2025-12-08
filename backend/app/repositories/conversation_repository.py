@@ -1,12 +1,11 @@
 from typing import List, Optional
 from uuid import UUID
 
+from app.models.conversation import Conversation
+from app.models.conversation_member import ConversationMember
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-
-from app.models.conversation import Conversation
-from app.models.conversation_member import ConversationMember
 
 
 class ConversationRepository:
