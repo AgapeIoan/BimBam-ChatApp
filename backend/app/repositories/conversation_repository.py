@@ -1,12 +1,13 @@
-from typing import List, Optional
+from typing import Dict, List, Optional
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from sqlalchemy.orm import selectinload
+from sqlalchemy import select, func, and_
+from sqlalchemy.orm import selectinload, aliased
 
 from app.models.conversation import Conversation
 from app.models.conversation_member import ConversationMember
+from app.models.message import Message
 
 
 class ConversationRepository:
@@ -43,28 +44,23 @@ class ConversationRepository:
 
     async def get_dm_conversation(self, user_a_id: UUID, user_b_id: UUID) -> Optional[Conversation]:
         """
-        Returns an existing DM conversation between two users, if exists.
+        Returns an existing DM conversation between two users, if it exists.
         """
+        cm_a = aliased(ConversationMember)
+        cm_b = aliased(ConversationMember)
+
         result = await self.session.execute(
             select(Conversation)
-            .join(ConversationMember)
-            .where(
-                Conversation.is_group == False  
+            .join(cm_a, and_(cm_a.conversation_id == Conversation.id, cm_a.user_id == user_a_id))
+            .join(cm_b, and_(cm_b.conversation_id == Conversation.id, cm_b.user_id == user_b_id))
+            .where(Conversation.is_group.is_(False))
+            .options(
+                selectinload(Conversation.members).selectinload(ConversationMember.user),
             )
-            .group_by(Conversation.id)
-            .having(
-                func.count(ConversationMember.user_id) == 2
-            )
+            .limit(1)
         )
 
-        conversations = result.scalars().all()
-
-        for c in conversations:
-            members = [m.user_id for m in c.members]
-            if user_a_id in members and user_b_id in members:
-                return c
-
-        return None
+        return result.scalars().first()
 
     async def get_or_create_dm(self, user_a_id: UUID, user_b_id: UUID) -> Conversation:
         """
@@ -143,7 +139,7 @@ class ConversationRepository:
     async def get_user_conversations(self, user_id: UUID) -> List[Conversation]:
         """
         Get all conversations (DM & group chats) a user is in,
-        with members + member.users + messages preloaded.
+        with members + member.users preloaded.
         """
         result = await self.session.execute(
             select(Conversation)
@@ -151,11 +147,30 @@ class ConversationRepository:
             .where(ConversationMember.user_id == user_id)
             .options(
                 selectinload(Conversation.members).selectinload(ConversationMember.user),
-                selectinload(Conversation.messages),
             )
             .order_by(Conversation.created_at.desc())
         )
         return result.scalars().all()
+
+    async def get_last_messages_for_conversations(
+        self, conversation_ids: List[UUID]
+    ) -> Dict[UUID, Message]:
+        """
+        Fetch the latest message per conversation (PostgreSQL DISTINCT ON).
+        """
+        if not conversation_ids:
+            return {}
+
+        stmt = (
+            select(Message)
+            .where(Message.conversation_id.in_(conversation_ids))
+            .distinct(Message.conversation_id)
+            .order_by(Message.conversation_id, Message.created_at.desc())
+        )
+
+        result = await self.session.execute(stmt)
+        messages = result.scalars().all()
+        return {m.conversation_id: m for m in messages}
 
 
     async def update_last_read(self, conversation_id: UUID, user_id: UUID, message_id: UUID):

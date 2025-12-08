@@ -6,3 +6,4 @@ redis
 sqlalchemy
 pydantic[email]
 asyncpg
+alembic

@@ -12,7 +12,6 @@ from app.models.message import Message
 from uuid import UUID
 from app.schemas.conversation.conversation_preview import ConversationPreview
 from app.schemas.user.user_read import UserRead
-from app.models.conversation_member import ConversationMember
 
 class ConversationService:
 
@@ -31,14 +30,13 @@ class ConversationService:
         Main method for: 'list all conversations of a user'
         """
         conversations = await self.conversation_repo.get_user_conversations(user_id)
+        conversation_ids = [c.id for c in conversations]
+        last_messages = await self.conversation_repo.get_last_messages_for_conversations(conversation_ids)
 
         previews: List[ConversationPreview] = []
 
         for conv in conversations:
-            # Last message (if any)
-            last_msg = None
-            if conv.messages:
-                last_msg = max(conv.messages, key=lambda m: m.created_at)
+            last_msg = last_messages.get(conv.id)
 
             # Membership row for THIS user (for unread_count)
             my_member = next(
