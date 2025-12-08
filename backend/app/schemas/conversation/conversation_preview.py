@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import Optional, List
-from pydantic import BaseModel
+from typing import List, Optional
 from uuid import UUID
+
+from pydantic import BaseModel
 
 from app.schemas.user.user_read import UserRead
 

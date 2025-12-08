@@ -1,7 +1,7 @@
 from uuid import UUID
 
+from app.core.redis_client import set_user_offline, set_user_online
 from app.repositories.user_repository import UserRepository
-from app.core.redis_client import set_user_online, set_user_offline
 
 
 class UserService:

@@ -1,14 +1,12 @@
 import os
 
-from fastapi import FastAPI
 import uvicorn
+from fastapi import FastAPI
 
-from .core.config import get_settings
-from .api.v1 import ws
+from app.api.v1 import ws
 from app.db.init_db import init_db
 
 app = FastAPI()
-settings = get_settings()
 
 
 @app.on_event("startup")

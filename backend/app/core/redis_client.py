@@ -4,6 +4,7 @@ from uuid import UUID
 
 from redis import asyncio as redis
 from redis.exceptions import RedisError
+
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)

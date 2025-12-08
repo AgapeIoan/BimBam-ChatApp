@@ -1,9 +1,10 @@
-from typing import Optional
+from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from functools import lru_cache
-from .settings.database_settings import DatabaseSettings
+
 from .settings.auth_settings import AuthSettings
+from .settings.database_settings import DatabaseSettings
+
 
 class Settings(BaseSettings):
     ENV: str = "development"
@@ -12,7 +13,7 @@ class Settings(BaseSettings):
     REDIS_URL: str
     AUTH: AuthSettings = AuthSettings()
 
-    model_config = SettingsConfigDict(env_file=".env", env_nested_delimiter="__")
+    model_config = SettingsConfigDict(env_file=".env", env_nested_delimiter="__", extra="ignore")
 
 
 @lru_cache

@@ -3,9 +3,9 @@ from typing import Optional
 from uuid import UUID
 
 import jwt
-from jwt import InvalidTokenError
 from fastapi import WebSocket, status
 from fastapi.exceptions import WebSocketException
+from jwt import InvalidTokenError
 
 from app.core.config import get_settings
 from app.db.session import AsyncSessionLocal

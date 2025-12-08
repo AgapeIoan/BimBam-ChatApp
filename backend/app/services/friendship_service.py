@@ -1,8 +1,8 @@
 from uuid import UUID
 
+from app.core.redis_client import get_online_users
 from app.repositories.friendship_repository import FriendshipRepository
 from app.repositories.user_repository import UserRepository
-from app.core.redis_client import get_online_users
 from app.schemas.user.user_read import UserRead
 
 

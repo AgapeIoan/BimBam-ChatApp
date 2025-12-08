@@ -1,11 +1,8 @@
-import asyncio
 from types import SimpleNamespace
 from uuid import uuid4
 
-import pytest
 from fastapi import WebSocket
 from fastapi.testclient import TestClient
-from starlette.websockets import WebSocketDisconnect
 
 from app.api.deps.websocket_auth import websocket_auth
 from app.api.v1 import ws as ws_module

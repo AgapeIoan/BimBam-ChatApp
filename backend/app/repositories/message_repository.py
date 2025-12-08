@@ -1,11 +1,12 @@
 from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.message import Message
+
 
 class MessageRepository:
 
@@ -81,7 +82,7 @@ class MessageRepository:
             .where(
                 Message.conversation_id == conversation_id,
                 Message.sender_id != user_id,
-                Message.read == False,    
+                Message.read.is_(False),
             )
             .order_by(Message.created_at.asc())
         )

@@ -1,8 +1,8 @@
 from typing import List, Optional
 from uuid import UUID
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from app.models.conversation import Conversation
@@ -48,9 +48,7 @@ class ConversationRepository:
         result = await self.session.execute(
             select(Conversation)
             .join(ConversationMember)
-            .where(
-                Conversation.is_group == False  
-            )
+            .where(Conversation.is_group.is_(False))
             .group_by(Conversation.id)
             .having(
                 func.count(ConversationMember.user_id) == 2
