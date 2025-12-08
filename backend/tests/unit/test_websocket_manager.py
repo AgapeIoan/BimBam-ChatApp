@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 import pytest
+
 from app.websockets.connection_manager import ConnectionManager
 
 

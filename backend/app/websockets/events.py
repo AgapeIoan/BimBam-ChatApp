@@ -3,6 +3,8 @@ import logging
 from typing import Any, Dict, Optional, Set
 from uuid import UUID
 
+from fastapi import WebSocket
+
 from app.db.session import AsyncSessionLocal
 from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.message_repository import MessageRepository
@@ -11,11 +13,9 @@ from app.schemas.typing.typing_status import TypingStatus
 from app.schemas.websocket.envelope import EventEnvelope
 from app.schemas.websocket.error_events import ErrorPayload
 from app.schemas.websocket.event_types import WebSocketEventType
-from app.schemas.websocket.message_events import (MessageAckPayload,
-                                                  MessageSendPayload)
+from app.schemas.websocket.message_events import MessageAckPayload, MessageSendPayload
 from app.services.message_service import MessageService
 from app.websockets.connection_manager import connection_manager
-from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)
 MAX_MESSAGE_LENGTH = 4000

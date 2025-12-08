@@ -2,10 +2,11 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from app.db.base import Base
 from sqlalchemy import DateTime, ForeignKey, Integer, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
+
+from app.db.base import Base
 
 
 class Friendship(Base):

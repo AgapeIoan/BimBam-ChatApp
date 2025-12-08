@@ -1,11 +1,12 @@
 from types import SimpleNamespace
 from uuid import uuid4
 
+from fastapi import WebSocket
+from fastapi.testclient import TestClient
+
 from app.api.deps.websocket_auth import websocket_auth
 from app.api.v1 import ws as ws_module
 from app.main import app
-from fastapi import WebSocket
-from fastapi.testclient import TestClient
 
 TEST_USER_ID = uuid4()
 

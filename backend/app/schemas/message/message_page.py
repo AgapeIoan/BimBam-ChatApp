@@ -1,8 +1,9 @@
 from typing import List
 from uuid import UUID
 
-from app.schemas.message.message_read import MessageRead
 from pydantic import BaseModel
+
+from app.schemas.message.message_read import MessageRead
 
 
 class MessagePage(BaseModel):

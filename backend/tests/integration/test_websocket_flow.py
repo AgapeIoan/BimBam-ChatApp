@@ -1,11 +1,12 @@
 import pytest
-from app.api.deps.websocket_auth import websocket_auth
-from app.main import app
-from app.repositories.message_repository import MessageRepository
 from fastapi import WebSocket, status
 from fastapi.exceptions import WebSocketException
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
+
+from app.api.deps.websocket_auth import websocket_auth
+from app.main import app
+from app.repositories.message_repository import MessageRepository
 
 
 @pytest.fixture

@@ -1,13 +1,14 @@
 from typing import List, Optional
 
-from app.schemas.conversation.conversation_read import ConversationRead
-from app.schemas.message.message_read import MessageRead
 from fastapi import HTTPException
 from models.conversation import Conversation
 from models.message import Message
 from repositories.conversation_repository import ConversationRepository
 from repositories.message_repository import MessageRepository
 from repositories.user_repository import UserRepository
+
+from app.schemas.conversation.conversation_read import ConversationRead
+from app.schemas.message.message_read import MessageRead
 
 
 class ConversationService:

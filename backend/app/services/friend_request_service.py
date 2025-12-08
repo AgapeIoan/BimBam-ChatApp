@@ -1,10 +1,11 @@
 from uuid import UUID
 
+from fastapi import HTTPException
+
 from app.models.enums import FriendRequestStatus
 from app.repositories.friend_request_repository import FriendRequestRepository
 from app.repositories.friendship_repository import FriendshipRepository
 from app.repositories.user_repository import UserRepository
-from fastapi import HTTPException
 
 
 class FriendRequestService:

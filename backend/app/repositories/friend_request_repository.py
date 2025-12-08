@@ -1,10 +1,11 @@
 from typing import List, Optional
 from uuid import UUID
 
-from app.models.enums import FriendRequestStatus
-from app.models.friend_request import FriendRequest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.enums import FriendRequestStatus
+from app.models.friend_request import FriendRequest
 
 
 class FriendRequestRepository:

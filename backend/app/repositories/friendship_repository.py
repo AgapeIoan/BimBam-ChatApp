@@ -1,9 +1,10 @@
 from typing import List
 from uuid import UUID
 
-from app.models.friendship import Friendship
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.friendship import Friendship
 
 
 class FriendshipRepository:
