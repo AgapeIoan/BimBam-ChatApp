@@ -48,19 +48,18 @@ async def handle_message_send(
     websocket: WebSocket,
     user_id: UUID,
     data: Dict[str, Any],
+    correlation_id: Optional[str],
 ):
     try:
         payload = MessageSendPayload.model_validate(data)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Validation failed for message_send: %s", exc)
-        await send_error(websocket, "validation_failed", "Invalid message payload")
+        await send_error(websocket, "validation_failed", "Invalid message payload", correlation_id)
         return
 
     if len(payload.content) > MAX_MESSAGE_LENGTH:
-        await send_error(websocket, "validation_failed", "Message too long")
+        await send_error(websocket, "validation_failed", "Message too long", correlation_id)
         return
-
-    correlation_id = data.get("correlationId")
 
     async with AsyncSessionLocal() as session, session.begin():
         message_repo = MessageRepository(session)
@@ -130,18 +129,28 @@ async def handle_typing(
     websocket: WebSocket,
     user_id: UUID,
     data: Dict[str, Any],
+    correlation_id: Optional[str],
 ):
     try:
         payload = TypingStatus.model_validate(data)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Validation failed for typing: %s", exc)
-        await send_error(websocket, "validation_failed", "Invalid typing payload")
+        await send_error(websocket, "validation_failed", "Invalid typing payload", correlation_id)
+        return
+
+    if payload.from_user_id != user_id:
+        await send_error(
+            websocket,
+            "forbidden",
+            "fromUserId must match authenticated user",
+            correlation_id,
+        )
         return
 
     envelope = {
         "type": WebSocketEventType.TYPING.value,
         "data": {
-            "fromUserId": str(payload.from_user_id),
+            "fromUserId": str(user_id),
             "toUserId": str(payload.to_user_id),
             "isTyping": payload.is_typing,
         },
@@ -155,19 +164,19 @@ async def handle_mark_read(
     websocket: WebSocket,
     user_id: UUID,
     data: Dict[str, Any],
+    correlation_id: Optional[str],
 ):
-    correlation_id = data.get("correlationId")
     before_id = data.get("beforeMessageId")
     conversation_id = data.get("conversationId")
     if not conversation_id:
-        await send_error(websocket, "validation_failed", "conversationId required")
+        await send_error(websocket, "validation_failed", "conversationId required", correlation_id)
         return
 
     try:
         convo_uuid = UUID(str(conversation_id))
         before_uuid = UUID(str(before_id)) if before_id else None
     except ValueError:
-        await send_error(websocket, "validation_failed", "Invalid IDs")
+        await send_error(websocket, "validation_failed", "Invalid IDs", correlation_id)
         return
 
     async with AsyncSessionLocal() as session, session.begin():
@@ -184,7 +193,7 @@ async def handle_mark_read(
             )
         except Exception as exc:  # noqa: BLE001
             logger.exception("Failed to mark messages read: %s", exc)
-            await send_error(websocket, "db_error", "Failed to mark read")
+            await send_error(websocket, "db_error", "Failed to mark read", correlation_id)
             return
 
     # Notify others in conversation
@@ -216,7 +225,7 @@ async def handle_mark_read(
         correlationId=correlation_id,
         messageId=ack_msg_id,
         status="ok",
-        delivered=True,
+        delivered=bool(updated),
     )
     await websocket.send_text(
         json.dumps(
@@ -236,12 +245,13 @@ async def dispatch_event(
 ):
     etype = envelope.type
     data = envelope.data or {}
+    correlation_id = envelope.correlation_id or data.get("correlationId")
 
     if etype == WebSocketEventType.MESSAGE_SEND.value:
-        await handle_message_send(websocket, user_id, data)
+        await handle_message_send(websocket, user_id, data, correlation_id)
     elif etype == WebSocketEventType.TYPING.value:
-        await handle_typing(websocket, user_id, data)
+        await handle_typing(websocket, user_id, data, correlation_id)
     elif etype == WebSocketEventType.MESSAGE_READ.value:
-        await handle_mark_read(websocket, user_id, data)
+        await handle_mark_read(websocket, user_id, data, correlation_id)
     else:
-        await send_error(websocket, "unsupported_event", f"Unsupported event type {etype}")
+        await send_error(websocket, "unsupported_event", f"Unsupported event type {etype}", correlation_id)

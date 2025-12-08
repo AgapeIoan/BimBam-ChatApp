@@ -9,8 +9,11 @@ from app.api.v1 import ws as ws_module
 from app.main import app
 
 
+TEST_USER_ID = uuid4()
+
+
 async def fake_auth(_: WebSocket):
-    return SimpleNamespace(id=uuid4())
+    return SimpleNamespace(id=TEST_USER_ID)
 
 
 async def async_noop(*_, **__):
@@ -44,13 +47,39 @@ def test_websocket_rate_limit():
                 {
                     "type": "typing",
                     "data": {
-                        "fromUserId": str(uuid4()),
-                        "toUserId": str(uuid4()),
+                        "fromUserId": str(TEST_USER_ID),
+                        "toUserId": str(TEST_USER_ID),
                         "isTyping": True,
                     },
                 }
             )
-        error_msg = ws.receive_json()
-        assert error_msg["type"] == "error"
+        error_msg = None
+        for _ in range(ws_module.MAX_EVENTS_PER_MIN + 5):
+            msg = ws.receive_json()
+            if msg["type"] == "error":
+                error_msg = msg
+                break
+        assert error_msg, "Expected rate limit error"
         event = ws.receive()
         assert event["type"] == "websocket.close"
+
+
+def test_typing_spoofing_is_rejected():
+    client = TestClient(app)
+    with client.websocket_connect("/ws?token=test") as ws:
+        ws.send_json(
+            {
+                "type": "typing",
+                "data": {
+                    "fromUserId": str(uuid4()),
+                    "toUserId": str(uuid4()),
+                    "isTyping": True,
+                },
+                "correlationId": "corr-typing",
+            }
+        )
+
+        msg = ws.receive_json()
+        assert msg["type"] == "error"
+        assert msg["data"]["code"] == "forbidden"
+        assert msg["data"]["correlationId"] == "corr-typing"

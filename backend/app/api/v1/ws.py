@@ -1,6 +1,8 @@
+import asyncio
 import logging
 import time
 from collections import deque
+from contextlib import suppress
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, WebSocket
@@ -17,6 +19,22 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 presence_service = PresenceService()
 MAX_EVENTS_PER_MIN = 120
+PRESENCE_REFRESH_MIN_SECONDS = 5
+
+
+async def _presence_keepalive(user_id: UUID) -> None:
+    """
+    Refresh presence TTL periodically so long-lived sockets don't expire in Redis.
+    """
+    interval = max(PRESENCE_REFRESH_MIN_SECONDS, presence_service.ttl_seconds // 2)
+    while True:
+        try:
+            await asyncio.sleep(interval)
+            await presence_service.set_online(user_id)
+        except asyncio.CancelledError:
+            return
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Failed to refresh presence for user %s: %s", user_id, exc)
 
 
 @router.websocket("/ws")
@@ -28,6 +46,7 @@ async def websocket_endpoint(
     await websocket.accept()
     await connection_manager.add(user_id, websocket)
     await presence_service.set_online(user_id)
+    presence_task = asyncio.create_task(_presence_keepalive(user_id))
     recent_events = deque()
     logger.info("WebSocket connected for user %s", user_id)
     presence_envelope = {
@@ -70,6 +89,9 @@ async def websocket_endpoint(
 
             await dispatch_event(websocket, user_id, envelope)
     finally:
+        presence_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await presence_task
         await connection_manager.remove(user_id, websocket)
         has_other = await connection_manager.has_connections(user_id)
         if not has_other:
