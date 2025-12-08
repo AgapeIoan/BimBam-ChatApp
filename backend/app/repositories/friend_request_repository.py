@@ -1,10 +1,11 @@
 from typing import List, Optional
 from uuid import UUID
 
-from app.models.enums import FriendRequestStatus
-from app.models.friend_request import FriendRequest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.enums import FriendRequestStatus
+from app.models.friend_request import FriendRequest
 
 
 class FriendRequestRepository:
@@ -12,16 +13,16 @@ class FriendRequestRepository:
         self._session = session
 
     async def get_friend_request_by_id(self, request_id: UUID) -> Optional[FriendRequest]:
-        result = await self._session.execute(select(FriendRequest).where(FriendRequest.id == request_id))
+        result = await self._session.execute(
+            select(FriendRequest).where(FriendRequest.id == request_id)
+        )
         return result.scalars().one_or_none()
-
 
     async def get_friend_request(
         self,
         from_user_id: UUID,
         to_user_id: UUID,
     ) -> Optional[FriendRequest]:
-
         result = await self._session.execute(
             select(FriendRequest).where(
                 FriendRequest.from_user_id == from_user_id,
@@ -30,13 +31,11 @@ class FriendRequestRepository:
         )
         return result.scalars().one_or_none()
 
-
-    async def create_friend_request(          
+    async def create_friend_request(
         self,
         from_user_id: UUID,
         to_user_id: UUID,
     ) -> FriendRequest:
-
         fr = FriendRequest(
             from_user_id=from_user_id,
             to_user_id=to_user_id,
@@ -52,7 +51,6 @@ class FriendRequestRepository:
         fr: FriendRequest,
         status: FriendRequestStatus,
     ) -> FriendRequest:
-
         fr.status = status
         await self._session.flush()
         await self._session.refresh(fr)
@@ -62,7 +60,6 @@ class FriendRequestRepository:
         self,
         user_id: UUID,
     ) -> List[FriendRequest]:
-
         result = await self._session.execute(
             select(FriendRequest)
             .where(
@@ -72,12 +69,11 @@ class FriendRequestRepository:
             .order_by(FriendRequest.created_at.desc())
         )
         return result.scalars().all()
-    
+
     async def get_outgoing_requests(
         self,
         user_id: UUID,
     ) -> List[FriendRequest]:
-
         result = await self._session.execute(
             select(FriendRequest)
             .where(
@@ -87,6 +83,3 @@ class FriendRequestRepository:
             .order_by(FriendRequest.created_at.desc())
         )
         return result.scalars().all()
-
-
-

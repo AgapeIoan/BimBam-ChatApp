@@ -1,11 +1,12 @@
 import pytest
-from app.api.deps.websocket_auth import websocket_auth
-from app.main import app
-from app.repositories.message_repository import MessageRepository
 from fastapi import WebSocket, status
 from fastapi.exceptions import WebSocketException
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
+
+from app.api.deps.websocket_auth import websocket_auth
+from app.main import app
+from app.repositories.message_repository import MessageRepository
 
 
 @pytest.fixture
@@ -35,9 +36,10 @@ def test_happy_path_message_delivery(client, user_factory, conversation_factory,
     app.dependency_overrides[websocket_auth] = fake_auth
 
     try:
-        with client.websocket_connect("/ws?token=user-a&websocket=1") as ws_a, client.websocket_connect(
-            "/ws?token=user-b&websocket=1"
-        ) as ws_b:
+        with (
+            client.websocket_connect("/ws?token=user-a&websocket=1") as ws_a,
+            client.websocket_connect("/ws?token=user-b&websocket=1") as ws_b,
+        ):
             ws_a.send_json(
                 {
                     "type": "message_send",

@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from app.models.user import User
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.user import User
 
 
 class UserRepository:
@@ -24,20 +25,20 @@ class UserRepository:
 
     async def get_by_provider_id(self, provider: str, provider_id: str) -> User | None:
         result = await self._session.execute(
-            select(User)
-            .where(User.provider == provider)
-            .where(User.provider_id == provider_id)
+            select(User).where(User.provider == provider).where(User.provider_id == provider_id)
         )
 
         return result.scalars().one_or_none()
 
-    async def create(self, provider: str, provider_id: str, email: str, username: str, avatar_url: str | None) -> User:
+    async def create(
+        self, provider: str, provider_id: str, email: str, username: str, avatar_url: str | None
+    ) -> User:
         user = User(
             provider=provider,
             provider_id=provider_id,
             email=email,
             username=username,
-            avatar_url=avatar_url
+            avatar_url=avatar_url,
         )
         self._session.add(user)
         await self._session.flush()

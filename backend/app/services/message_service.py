@@ -1,17 +1,17 @@
 from typing import List, Optional
 from uuid import UUID
 
+from fastapi import HTTPException
+
 from app.core.redis_client import reset_unread
 from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.message_repository import MessageRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.message.message_page import MessagePage
 from app.schemas.message.message_read import MessageRead
-from fastapi import HTTPException
 
 
 class MessageService:
-
     def __init__(
         self,
         message_repo: MessageRepository,
@@ -43,10 +43,9 @@ class MessageService:
         sender_id: UUID,
         content: str,
     ):
-
         if not content or not content.strip():
             raise HTTPException(400, "Message content cannot be empty")
-        
+
         await self._ensure_member(conversation_id, sender_id)
 
         msg = await self.message_repo.create(
@@ -90,7 +89,6 @@ class MessageService:
 
         return updated
 
-
     async def get_messages(
         self,
         *,
@@ -100,7 +98,6 @@ class MessageService:
         before_id: Optional[UUID] = None,
         mark_read: bool = True,
     ):
-
         await self._ensure_member(conversation_id, user_id)
 
         messages = await self.message_repo.get_messages(
@@ -131,7 +128,6 @@ class MessageService:
 
         return messages
 
-
     async def get_messages_as_schema(
         self,
         *,
@@ -140,7 +136,6 @@ class MessageService:
         limit: int = 50,
         before_id: Optional[UUID] = None,
     ) -> List[MessageRead]:
-
         messages = await self.get_messages(
             conversation_id=conversation_id,
             user_id=user_id,
@@ -159,7 +154,6 @@ class MessageService:
         limit: int = 50,
         before_id: Optional[UUID] = None,
     ) -> MessagePage:
-
         messages = await self.get_messages(
             conversation_id=conversation_id,
             user_id=user_id,

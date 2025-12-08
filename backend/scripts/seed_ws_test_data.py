@@ -78,7 +78,9 @@ async def seed(tokens: Sequence[str], skip_dm: bool, settings: Settings) -> None
             conv_repo = ConversationRepository(session)
             convo = await conv_repo.get_or_create_dm(users[0].id, users[1].id)
             conversation_id = convo.id
-            print(f"Ensured DM conversation between {users[0].id} and {users[1].id}: {conversation_id}")
+            print(
+                f"Ensured DM conversation between {users[0].id} and {users[1].id}: {conversation_id}"
+            )
 
         await session.commit()
 

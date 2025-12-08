@@ -1,11 +1,12 @@
 from typing import List, Optional
 from uuid import UUID
 
-from app.models.conversation import Conversation
-from app.models.conversation_member import ConversationMember
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
+from app.models.conversation import Conversation
+from app.models.conversation_member import ConversationMember
 
 
 class ConversationRepository:
@@ -13,10 +14,7 @@ class ConversationRepository:
         self.session = session
 
     async def create_conversation(
-        self,
-        *,
-        is_group: bool,
-        name: Optional[str] = None
+        self, *, is_group: bool, name: Optional[str] = None
     ) -> Conversation:
         """Create a new conversation (DM or Group)."""
         conv = Conversation(is_group=is_group, name=name)
@@ -30,7 +28,7 @@ class ConversationRepository:
         result = await self.session.execute(
             select(Conversation)
             .where(Conversation.id == conversation_id)
-            .options(selectinload(Conversation.members))   # load members
+            .options(selectinload(Conversation.members))  # load members
         )
         return result.scalars().one_or_none()
 
@@ -49,9 +47,7 @@ class ConversationRepository:
             .join(ConversationMember)
             .where(Conversation.is_group.is_(False))
             .group_by(Conversation.id)
-            .having(
-                func.count(ConversationMember.user_id) == 2
-            )
+            .having(func.count(ConversationMember.user_id) == 2)
             .options(selectinload(Conversation.members))
         )
 
@@ -90,7 +86,9 @@ class ConversationRepository:
         await self.add_member(conv.id, creator_id, is_admin=True)
         return conv
 
-    async def add_member(self, conversation_id: UUID, user_id: UUID, is_admin: bool = False) -> ConversationMember:
+    async def add_member(
+        self, conversation_id: UUID, user_id: UUID, is_admin: bool = False
+    ) -> ConversationMember:
         """
         Add one user to the conversation.
         """
@@ -109,8 +107,7 @@ class ConversationRepository:
         Remove member from conversation.
         """
         result = await self.session.execute(
-            select(ConversationMember)
-            .where(
+            select(ConversationMember).where(
                 ConversationMember.conversation_id == conversation_id,
                 ConversationMember.user_id == user_id,
             )
@@ -119,7 +116,7 @@ class ConversationRepository:
 
         if not member:
             return None
-        
+
         await self.session.delete(member)
         await self.session.flush()
 
@@ -130,8 +127,7 @@ class ConversationRepository:
         Return True if user_id is part of conversation_id.
         """
         result = await self.session.execute(
-            select(ConversationMember)
-            .where(
+            select(ConversationMember).where(
                 ConversationMember.conversation_id == conversation_id,
                 ConversationMember.user_id == user_id,
             )
@@ -156,8 +152,7 @@ class ConversationRepository:
         Update last read message and reset unread count.
         """
         result = await self.session.execute(
-            select(ConversationMember)
-            .where(
+            select(ConversationMember).where(
                 ConversationMember.conversation_id == conversation_id,
                 ConversationMember.user_id == user_id,
             )
@@ -182,5 +177,5 @@ class ConversationRepository:
         for m in members:
             if m.user_id != sender_id:
                 m.unread_count += 1
-    
+
         await self.session.flush()

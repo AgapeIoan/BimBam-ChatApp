@@ -3,14 +3,14 @@ import os
 
 import fakeredis.aioredis
 import pytest
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
 from app.api.deps.websocket_auth import websocket_auth
 from app.core import redis_client
 from app.db import session as session_module
 from app.db.base import Base
 from app.websockets.connection_manager import connection_manager
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
-                                    create_async_engine)
 
 # Ensure base env defaults for settings loading
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")

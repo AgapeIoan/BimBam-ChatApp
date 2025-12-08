@@ -21,10 +21,12 @@ class FriendshipService:
         result = []
         for fr in friends:
             friend = await self.user_repo.get_by_id(fr.friend_id)
-            result.append({
-                "friend": UserRead.model_validate(friend),
-                "is_online": str(friend.id) in online_ids,
-                "last_read_message_id": fr.last_read_message_id,
-                "unread_count": fr.unread_count,
-            })
+            result.append(
+                {
+                    "friend": UserRead.model_validate(friend),
+                    "is_online": str(friend.id) in online_ids,
+                    "last_read_message_id": fr.last_read_message_id,
+                    "unread_count": fr.unread_count,
+                }
+            )
         return result

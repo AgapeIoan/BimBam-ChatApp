@@ -3,12 +3,13 @@ from typing import Optional
 from uuid import UUID
 
 import jwt
-from app.core.config import get_settings
-from app.db.session import AsyncSessionLocal
-from app.repositories.user_repository import UserRepository
 from fastapi import WebSocket, status
 from fastapi.exceptions import WebSocketException
 from jwt import InvalidTokenError
+
+from app.core.config import get_settings
+from app.db.session import AsyncSessionLocal
+from app.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -35,19 +36,25 @@ async def websocket_auth(
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="Missing token")
 
     try:
-        payload = jwt.decode(token, settings.AUTH.JWT_SECRET, algorithms=[settings.AUTH.JWT_ALGORITHM])
+        payload = jwt.decode(
+            token, settings.AUTH.JWT_SECRET, algorithms=[settings.AUTH.JWT_ALGORITHM]
+        )
     except InvalidTokenError as exc:
         logger.warning("Invalid websocket token: %s", exc)
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid token")
 
     user_id_raw = payload.get("sub")
     if not user_id_raw:
-        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid token payload")
+        raise WebSocketException(
+            code=status.WS_1008_POLICY_VIOLATION, reason="Invalid token payload"
+        )
 
     try:
         user_id = UUID(str(user_id_raw))
     except ValueError:
-        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid token subject")
+        raise WebSocketException(
+            code=status.WS_1008_POLICY_VIOLATION, reason="Invalid token subject"
+        )
 
     async with AsyncSessionLocal() as session:
         user_repo = UserRepository(session)

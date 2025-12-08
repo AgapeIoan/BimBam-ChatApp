@@ -5,7 +5,6 @@ from app.repositories.user_repository import UserRepository
 
 
 class UserService:
-
     def __init__(self, user_repo: UserRepository):
         self.user_repo = user_repo
 
@@ -18,7 +17,9 @@ class UserService:
     async def get_by_username(self, username: str):
         return await self.user_repo.get_by_username(username)
 
-    async def login_or_register(self, provider: str, provider_id: str, email: str, username: str, avatar_url: str | None):
+    async def login_or_register(
+        self, provider: str, provider_id: str, email: str, username: str, avatar_url: str | None
+    ):
         user = await self.user_repo.get_by_provider_id(provider, provider_id)
         if user:
             return user

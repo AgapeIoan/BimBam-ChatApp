@@ -1,10 +1,11 @@
 import uuid
 from datetime import datetime
 
-from app.db.base import Base
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.db.base import Base
 
 
 class Message(Base):
@@ -17,21 +18,17 @@ class Message(Base):
     )
 
     conversation_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("conversations.id", ondelete="CASCADE"),
-        index=True
+        ForeignKey("conversations.id", ondelete="CASCADE"), index=True
     )
 
     sender_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        index=True
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
 
     content: Mapped[str] = mapped_column(Text)
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        index=True
+        DateTime(timezone=True), server_default=func.now(), index=True
     )
 
     delivered: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -40,6 +37,4 @@ class Message(Base):
     conversation = relationship("Conversation", back_populates="messages")
     sender = relationship("User", back_populates="messages_sent", foreign_keys=[sender_id])
 
-    __table_args__ = (
-        Index("idx_msg_conversation_created", "conversation_id", "created_at"),
-    )
+    __table_args__ = (Index("idx_msg_conversation_created", "conversation_id", "created_at"),)
