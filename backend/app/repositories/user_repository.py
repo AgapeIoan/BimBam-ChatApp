@@ -50,3 +50,9 @@ class UserRepository:
         user.last_seen = datetime.now(timezone.utc)
         await self._session.flush()
         return user
+
+    async def update_username(self, user: User, new_username: str) -> User:
+        user.username = new_username
+        await self._session.flush()
+        await self._session.refresh(user)
+        return user
