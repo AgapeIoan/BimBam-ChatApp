@@ -3,11 +3,11 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.api.v1.deps import get_db
-from backend.app.models.user import User
-from backend.app.models.conversation import Conversation
-from backend.app.models.conversation_member import ConversationMember
-from backend.app.models.message import Message
+from app.api.v1.deps import get_db
+from app.models.user import User
+from app.models.conversation import Conversation
+from app.models.conversation_member import ConversationMember
+from app.models.message import Message
 
 router = APIRouter(prefix="/debug", tags=["debug"])
 

@@ -3,8 +3,8 @@ from sqlalchemy import ForeignKey, DateTime, UniqueConstraint, Enum, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
-from backend.app.db.base_class import Base
-from backend.app.models.enums import FriendRequestStatus
+from app.db.base_class import Base
+from app.models.enums import FriendRequestStatus
 
 
 class FriendRequest(Base):

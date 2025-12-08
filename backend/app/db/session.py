@@ -2,7 +2,7 @@ from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
-from backend.app.core.config import get_settings  # ✅ use app., not backend.app
+from app.core.config import get_settings  # use app., not backend.app
 
 settings = get_settings()
 

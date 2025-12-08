@@ -2,10 +2,10 @@ from typing import List
 
 from fastapi import APIRouter, Depends
 
-from backend.app.schemas.conversation.conversation_preview import ConversationPreview
-from backend.app.services.conversation_service import ConversationService
-from backend.app.api.v1.deps import get_conversation_service, get_current_user
-from backend.app.models.user import User
+from app.schemas.conversation.conversation_preview import ConversationPreview
+from app.services.conversation_service import ConversationService
+from app.api.v1.deps import get_conversation_service, get_current_user
+from app.models.user import User
 
 router = APIRouter(
     prefix="/conversations",

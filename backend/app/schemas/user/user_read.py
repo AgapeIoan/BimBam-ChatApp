@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import Field
 
-from backend.app.schemas.user.user_base import UserBase
+from app.schemas.user.user_base import UserBase
 
 class UserRead(UserBase):
     id: UUID = Field(..., alias="id")

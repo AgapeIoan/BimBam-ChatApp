@@ -4,13 +4,13 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.db.session import async_session_maker  # adjust if path differs
+from app.db.session import async_session_maker  # adjust if path differs
 
-from backend.app.repositories.conversation_repository import ConversationRepository
-from backend.app.repositories.message_repository import MessageRepository
-from backend.app.repositories.user_repository import UserRepository
-from backend.app.services.conversation_service import ConversationService
-from backend.app.models.user import User
+from app.repositories.conversation_repository import ConversationRepository
+from app.repositories.message_repository import MessageRepository
+from app.repositories.user_repository import UserRepository
+from app.services.conversation_service import ConversationService
+from app.models.user import User
 
 
 # 1) DB session dependency

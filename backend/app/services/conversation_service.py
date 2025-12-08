@@ -1,18 +1,18 @@
 from typing import List, Optional
 from fastapi import HTTPException
 
-from backend.app.repositories.conversation_repository import ConversationRepository
-from backend.app.repositories.user_repository import UserRepository
-from backend.app.repositories.message_repository import MessageRepository
-from backend.app.schemas.conversation.conversation_read import ConversationRead
-from backend.app.schemas.message.message_read import MessageRead
-from backend.app.models.conversation import Conversation
-from backend.app.models.message import Message
+from app.repositories.conversation_repository import ConversationRepository
+from app.repositories.user_repository import UserRepository
+from app.repositories.message_repository import MessageRepository
+from app.schemas.conversation.conversation_read import ConversationRead
+from app.schemas.message.message_read import MessageRead
+from app.models.conversation import Conversation
+from app.models.message import Message
 
 from uuid import UUID
-from backend.app.schemas.conversation.conversation_preview import ConversationPreview
-from backend.app.schemas.user.user_read import UserRead
-from backend.app.models.conversation_member import ConversationMember
+from app.schemas.conversation.conversation_preview import ConversationPreview
+from app.schemas.user.user_read import UserRead
+from app.models.conversation_member import ConversationMember
 
 class ConversationService:
 

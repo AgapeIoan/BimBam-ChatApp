@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
-from backend.app.models.conversation import Conversation
-from backend.app.models.conversation_member import ConversationMember
+from app.models.conversation import Conversation
+from app.models.conversation_member import ConversationMember
 
 
 class ConversationRepository:

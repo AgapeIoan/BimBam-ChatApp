@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from backend.app.api.v1.routers.conversations_router import router as conversations_router
-from backend.app.api.v1.routers.debug_router import router as debug_router
+from app.api.v1.routers.conversations_router import router as conversations_router
+from app.api.v1.routers.debug_router import router as debug_router
 
 router = APIRouter()
 
