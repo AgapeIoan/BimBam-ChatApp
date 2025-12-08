@@ -2,13 +2,12 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import DateTime, String, func
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.db.base import Base
 from app.models.friend_request import FriendRequest
 from app.models.message import Message
+from sqlalchemy import DateTime, String, func
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
 class User(Base):

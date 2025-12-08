@@ -21,12 +21,12 @@ PROJECT_ROOT = CURRENT_DIR.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from app.core.config import get_settings, Settings
-from app.db.init_db import init_db
-from app.db.session import AsyncSessionLocal
-from app.models.user import User
-from app.repositories.conversation_repository import ConversationRepository
-from app.repositories.user_repository import UserRepository
+from app.core.config import Settings, get_settings  # noqa: E402
+from app.db.init_db import init_db  # noqa: E402
+from app.db.session import AsyncSessionLocal  # noqa: E402
+from app.models.user import User  # noqa: E402
+from app.repositories.conversation_repository import ConversationRepository  # noqa: E402
+from app.repositories.user_repository import UserRepository  # noqa: E402
 
 
 def _user_id_from_token(token: str, settings: Settings) -> UUID:

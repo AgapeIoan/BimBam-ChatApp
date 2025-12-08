@@ -2,10 +2,9 @@ import logging
 from typing import Dict, List, Union
 from uuid import UUID
 
+from app.core.config import get_settings
 from redis import asyncio as redis
 from redis.exceptions import RedisError
-
-from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 

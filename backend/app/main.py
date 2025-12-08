@@ -1,10 +1,9 @@
 import os
 
 import uvicorn
-from fastapi import FastAPI
-
 from app.api.v1 import ws
 from app.db.init_db import init_db
+from fastapi import FastAPI
 
 app = FastAPI()
 
