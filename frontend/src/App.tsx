@@ -71,10 +71,7 @@ export default function App() {
         setUserEmail(current.email);
 
         if (!current.username || current.username.trim() === '') {
-          const guessed = normalizeUsernameFromGoogle(
-            (current as any).name || null,
-            current.email,
-          );
+          const guessed = normalizeUsernameFromGoogle(current.name ?? null, current.email);
           setDefaultUsername(guessed);
           setShowUsernameSetup(true);
         }
@@ -98,9 +95,8 @@ export default function App() {
       }
       setShowUsernameSetup(false);
       setIsAuthenticated(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to save username:', err);
-      
     }
   };
 
