@@ -22,6 +22,8 @@ class MessageDeliveredPayload(BaseModel):
     created_at: datetime = Field(..., alias="createdAt")
     delivered: bool = Field(..., alias="delivered")
     read: bool = Field(..., alias="read")
+    edited_at: Optional[datetime] = Field(None, alias="editedAt")
+    edited_by_id: Optional[UUID] = Field(None, alias="editedById")
 
 
 class MessageAckPayload(BaseModel):

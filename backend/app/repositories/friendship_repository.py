@@ -28,6 +28,8 @@ class FriendshipRepository:
         self._session.add_all([f1, f2])
 
         await self._session.flush()
+        await self._session.refresh(f1)
+        await self._session.refresh(f2)
 
         return f1, f2
 

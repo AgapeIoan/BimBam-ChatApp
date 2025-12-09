@@ -1,6 +1,5 @@
 from typing import List, Optional
 
-from fastapi import HTTPException
 from models.conversation import Conversation
 from models.message import Message
 from repositories.conversation_repository import ConversationRepository
@@ -9,6 +8,10 @@ from repositories.user_repository import UserRepository
 
 from app.schemas.conversation.conversation_read import ConversationRead
 from app.schemas.message.message_read import MessageRead
+from app.utils.errors.resource_not_found import ResourceNotFoundException
+from app.utils.errors.unauthorized_exception import UnauthorizedException
+from app.utils.errors.user_not_found_exception import UserNotFoundException
+from app.utils.errors.validation_exception import ValidationException
 
 
 class ConversationService:
@@ -24,22 +27,22 @@ class ConversationService:
 
     async def get_or_create_dm(self, user_a_id, user_b_id) -> Conversation:
         if user_a_id == user_b_id:
-            raise HTTPException(400, "Cannot create DM with yourself")
+            raise ValidationException("Cannot create DM with yourself")
 
         # Confirm both users exist
         if not await self.user_repo.get_by_id(user_b_id):
-            raise HTTPException(404, "User not found")
+            raise UserNotFoundException("User not found")
 
         return await self.conversation_repo.get_or_create_dm(user_a_id, user_b_id)
 
     async def create_group(self, creator_id: str, name: str, member_ids: List[str]) -> Conversation:
         if not name:
-            raise HTTPException(400, "Group name is required")
+            raise ValidationException("Group name is required")
 
         # Validate all members exist
         for uid in member_ids:
             if not await self.user_repo.get_by_id(uid):
-                raise HTTPException(404, f"User {uid} not found")
+                raise UserNotFoundException(f"User {uid} not found")
 
         conversation = await self.conversation_repo.create_group(name, creator_id)
 
@@ -52,20 +55,20 @@ class ConversationService:
     async def add_member(self, conversation_id, user_id):
         conv = await self.conversation_repo.get_by_id(conversation_id)
         if not conv:
-            raise HTTPException(404, "Conversation not found")
+            raise ResourceNotFoundException("Conversation not found")
 
         if not conv.is_group:
-            raise HTTPException(400, "Cannot add members to a direct chat")
+            raise ValidationException("Cannot add members to a direct chat")
 
         await self.conversation_repo.add_member(conversation_id, user_id)
 
     async def remove_member(self, conversation_id, user_id):
         conv = await self.conversation_repo.get_by_id(conversation_id)
         if not conv:
-            raise HTTPException(404, "Conversation not found")
+            raise ResourceNotFoundException("Conversation not found")
 
         if not conv.is_group:
-            raise HTTPException(400, "Cannot remove members from a direct chat")
+            raise UnauthorizedException("Cannot remove members from a direct chat")
 
         await self.conversation_repo.remove_member(conversation_id, user_id)
 
@@ -75,10 +78,10 @@ class ConversationService:
     async def send_message(self, conversation_id, sender_id, content: str) -> Message:
         conv = await self.conversation_repo.get_by_id(conversation_id)
         if not conv:
-            raise HTTPException(404, "Conversation not found")
+            raise ResourceNotFoundException("Conversation not found")
 
         if not await self.conversation_repo.is_member(conversation_id, sender_id):
-            raise HTTPException(403, "You are not part of this conversation")
+            raise UnauthorizedException("You are not part of this conversation")
 
         message = await self.message_repo.create(
             conversation_id=conversation_id,
@@ -102,10 +105,10 @@ class ConversationService:
         mark_read: bool = True,
     ) -> List[Message]:
         if not await self.conversation_repo.get_by_id(conversation_id):
-            raise HTTPException(404, "Conversation not found")
+            raise ResourceNotFoundException("Conversation not found")
 
         if not await self.conversation_repo.is_member(conversation_id, user_id):
-            raise HTTPException(403, "You are not part of this conversation")
+            raise UnauthorizedException("You are not part of this conversation")
 
         messages = await self.message_repo.get_messages(
             conversation_id=conversation_id,
@@ -142,9 +145,9 @@ class ConversationService:
         conv = await self.conversation_repo.get_by_id(conversation_id)
 
         if not conv:
-            raise HTTPException(404, "Conversation not found")
+            raise ResourceNotFoundException("Conversation not found")
 
         if not await self.conversation_repo.is_member(conversation_id, user_id):
-            raise HTTPException(403, "You are not part of this conversation")
+            raise UnauthorizedException("You are not part of this conversation")
 
         return ConversationRead.model_validate(conv)

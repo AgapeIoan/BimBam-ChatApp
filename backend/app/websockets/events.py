@@ -30,6 +30,8 @@ def serialize_message(msg) -> Dict[str, Any]:
         "createdAt": msg.created_at.isoformat(),
         "delivered": msg.delivered,
         "read": msg.read,
+        "editedAt": msg.edited_at.isoformat() if getattr(msg, "edited_at", None) else None,
+        "editedById": str(msg.edited_by_id) if getattr(msg, "edited_by_id", None) else None,
     }
 
 
