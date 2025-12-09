@@ -142,12 +142,10 @@ class ConversationRepository:
             select(Conversation)
             .join(ConversationMember)
             .where(ConversationMember.user_id == user_id)
-            .options(
-                selectinload(Conversation.members).selectinload(ConversationMember.user)
-            )
+            .options(selectinload(Conversation.members))
             .order_by(Conversation.created_at.desc())
         )
-        return result.unique().scalars().all()
+        return result.scalars().all()
 
     async def update_last_read(self, conversation_id: UUID, user_id: UUID, message_id: UUID):
         """
