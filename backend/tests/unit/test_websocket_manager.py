@@ -2,8 +2,10 @@ from uuid import uuid4
 
 import pytest
 
-from app.websockets.connection_manager import ConnectionManager
+from typing import cast
+from starlette.websockets import WebSocket
 
+from app.websockets.connection_manager import ConnectionManager
 
 class DummyWebSocket:
     def __init__(self):
@@ -23,7 +25,7 @@ async def test_connect_adds_connection():
     user_id = uuid4()
     ws = DummyWebSocket()
 
-    await manager.add(user_id, ws)
+    await manager.add(user_id, cast(WebSocket, ws))
 
     assert await manager.has_connections(user_id) is True
     connections = await manager.get_connections(user_id)
@@ -36,8 +38,8 @@ async def test_disconnect_removes_connection():
     user_id = uuid4()
     ws = DummyWebSocket()
 
-    await manager.add(user_id, ws)
-    await manager.remove(user_id, ws)
+    await manager.add(user_id, cast(WebSocket, ws))
+    await manager.remove(user_id,cast(WebSocket, ws))
 
     assert await manager.has_connections(user_id) is False
 
@@ -47,7 +49,7 @@ async def test_send_personal_message_reaches_socket():
     manager = ConnectionManager()
     user_id = uuid4()
     ws = DummyWebSocket()
-    await manager.add(user_id, ws)
+    await manager.add(user_id, cast(WebSocket, ws))
 
     payload = {"hello": "world"}
     delivered = await manager.send_to_user(user_id, payload)

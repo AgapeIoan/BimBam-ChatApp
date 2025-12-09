@@ -7,12 +7,12 @@ from starlette.websockets import WebSocketDisconnect
 from app.api.deps.websocket_auth import websocket_auth
 from app.main import app
 from app.repositories.message_repository import MessageRepository
-
+from tests.fixtures import client, user_factory, conversation_factory, event_loop
 
 @pytest.fixture
 def client():
-    with TestClient(app) as c:
-        yield c
+    with TestClient(app) as client:
+        yield client
 
 
 def test_auth_fail_missing_token(client):

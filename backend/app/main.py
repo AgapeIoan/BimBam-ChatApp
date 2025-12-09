@@ -4,7 +4,10 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
+try:
+    from starlette.middleware.sessions import SessionMiddleware
+except Exception:  # pragma: no cover - optional dependency in some test environments
+    SessionMiddleware = None
 
 from app.api.v1 import ws
 from app.api.v1.routes_handler import api_router
@@ -23,10 +26,11 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=settings.AUTH.JWT_SECRET_KEY,
-)
+if SessionMiddleware is not None:
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=settings.AUTH.JWT_SECRET_KEY,
+    )
 
 app.add_middleware(
     CORSMiddleware,

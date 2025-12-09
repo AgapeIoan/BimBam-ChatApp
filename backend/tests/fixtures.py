@@ -1,33 +1,24 @@
 import asyncio
-import os
+from typing import Iterator, Callable
 
-import fakeredis.aioredis
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.api.deps.websocket_auth import websocket_auth
-from app.core import redis_client
 from app.db import session as session_module
+from app.db.session import AsyncSessionLocal  
 from app.db.base import Base
+from app.main import app
 from app.websockets.connection_manager import connection_manager
+from tests.helpers import _init_fake_redis
+from app.models.user import User
 
-# Ensure base env defaults for settings loading
-os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
-os.environ.setdefault("DATABASE__DB_URL", "postgresql+asyncpg://user:pass@localhost:5432/testdb")
-os.environ.setdefault("DATABASE__DB_HOST", "localhost")
-os.environ.setdefault("DATABASE__DB_PORT", "5432")
-os.environ.setdefault("DATABASE__DB_USER", "user")
-os.environ.setdefault("DATABASE__DB_PASSWORD", "pass")
-os.environ.setdefault("DATABASE__DB_NAME", "testdb")
-os.environ.setdefault("SKIP_DB_INIT_ON_STARTUP", "1")
-
-
-def _init_fake_redis():
-    fake = fakeredis.aioredis.FakeRedis(decode_responses=True)
-    redis_client.redis_client = fake
-    return fake
-
+@pytest.fixture
+def client():
+    with TestClient(app) as client:
+        yield client
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -36,9 +27,8 @@ def event_loop():
     yield loop
     loop.close()
 
-
 @pytest.fixture(scope="session")
-def session_factory(event_loop) -> async_sessionmaker[AsyncSession]:
+def session_factory(event_loop) -> Iterator[async_sessionmaker[AsyncSession]]:
     async def _init():
         engine = create_async_engine(
             "sqlite+aiosqlite:///:memory:",
@@ -80,6 +70,7 @@ def session_factory(event_loop) -> async_sessionmaker[AsyncSession]:
     yield TestingSessionLocal
 
     event_loop.run_until_complete(engine.dispose())
+    event_loop.run_until_complete(engine.dispose())
 
 
 @pytest.fixture(autouse=True)
@@ -108,26 +99,28 @@ def reset_db(event_loop, session_factory):
 
 
 @pytest.fixture
-def user_factory(event_loop, session_factory):
-    from app.repositories.user_repository import UserRepository
+def user_factory() -> Callable[[str, str], User]:
+    """
+    Synchronous factory to create a User in the test database.
 
-    def _create(email: str, username: str):
-        async def _create_async():
-            async with session_factory() as session:
-                repo = UserRepository(session)
-                user = await repo.create(
-                    provider="test",
-                    provider_id=email,
-                    email=email,
-                    username=username,
-                    avatar_url=None,
-                )
+    Usage in tests:
+        user = user_factory("email@example.com", "username")
+    """
+
+    def _create_user(email: str, username: str) -> User:
+        async def _inner() -> User:
+            async with AsyncSessionLocal() as session:
+                assert isinstance(session, AsyncSession)
+                user = User(email=email, username=username)
+                session.add(user)
                 await session.commit()
+                await session.refresh(user)
                 return user
 
-        return event_loop.run_until_complete(_create_async())
+        # Run the async inner function in the current event loop
+        return asyncio.get_event_loop().run_until_complete(_inner())
 
-    return _create
+    return _create_user
 
 
 @pytest.fixture
