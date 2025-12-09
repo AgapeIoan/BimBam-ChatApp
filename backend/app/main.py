@@ -26,11 +26,10 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-if SessionMiddleware is not None:
-    app.add_middleware(
-        SessionMiddleware,
-        secret_key=settings.AUTH.JWT_SECRET_KEY,
-    )
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.AUTH.JWT_SECRET_KEY,
+)
 
 app.add_middleware(
     CORSMiddleware,

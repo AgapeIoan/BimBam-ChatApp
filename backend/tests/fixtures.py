@@ -1,4 +1,5 @@
 import asyncio
+import os
 from typing import Callable, Iterator, Optional
 
 import pytest
@@ -10,14 +11,26 @@ from app.api.deps.websocket_auth import websocket_auth
 from app.db import session as session_module
 from app.db.base import Base
 from app.main import app
+from app.models.user import User
 from app.websockets.connection_manager import connection_manager
 from tests.helpers import _init_fake_redis
-from app.models.user import User
+
+# Ensure base env defaults for settings loading
+os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
+os.environ.setdefault("DATABASE__DB_URL", "postgresql+asyncpg://user:pass@localhost:5432/testdb")
+os.environ.setdefault("DATABASE__DB_HOST", "localhost")
+os.environ.setdefault("DATABASE__DB_PORT", "5432")
+os.environ.setdefault("DATABASE__DB_USER", "user")
+os.environ.setdefault("DATABASE__DB_PASSWORD", "pass")
+os.environ.setdefault("DATABASE__DB_NAME", "testdb")
+os.environ.setdefault("SKIP_DB_INIT_ON_STARTUP", "1")
+
 
 @pytest.fixture
 def client():
     with TestClient(app) as client:
         yield client
+
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -25,6 +38,7 @@ def event_loop():
     asyncio.set_event_loop(loop)
     yield loop
     loop.close()
+
 
 @pytest.fixture(scope="session")
 def session_factory(event_loop) -> Iterator[async_sessionmaker[AsyncSession]]:
@@ -69,7 +83,6 @@ def session_factory(event_loop) -> Iterator[async_sessionmaker[AsyncSession]]:
     yield TestingSessionLocal
 
     event_loop.run_until_complete(engine.dispose())
-    event_loop.run_until_complete(engine.dispose())
 
 
 @pytest.fixture(autouse=True)
@@ -98,7 +111,7 @@ def reset_db(event_loop, session_factory):
 
 
 @pytest.fixture
-def user_factory() -> Callable[[str, str, str | None, str | None], User]:
+def user_factory(event_loop, session_factory) -> Callable[[str, str, Optional[str], Optional[str]], User]:
     """
     Synchronous factory to create a User in the test database.
 
@@ -106,14 +119,14 @@ def user_factory() -> Callable[[str, str, str | None, str | None], User]:
         user = user_factory("email@example.com", "username")
     """
 
-    def _create_user(email: str, username: str, provider: Optional[str] = "local", provider_id: Optional[str] = None) -> User:
+    def _create_user(email: str, username: str, provider: Optional[str] = "test", provider_id: Optional[str] = None) -> User:
         async def _inner() -> User:
             async with session_module.AsyncSessionLocal() as session:
                 assert isinstance(session, AsyncSession)
                 user = User(
                     email=email,
                     username=username,
-                    provider=provider or "local",
+                    provider=provider or "test",
                     provider_id=provider_id or email,
                 )
                 session.add(user)
@@ -121,8 +134,7 @@ def user_factory() -> Callable[[str, str, str | None, str | None], User]:
                 await session.refresh(user)
                 return user
 
-        # Run the async inner function in the current event loop
-        return asyncio.get_event_loop().run_until_complete(_inner())
+        return event_loop.run_until_complete(_inner())
 
     return _create_user
 
@@ -165,8 +177,6 @@ def ws_auth_override():
             raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION, reason="Missing token")
 
         return token_user_map[token]
-
-    from app.main import app
 
     app.dependency_overrides[websocket_auth] = fake_auth
     yield token_user_map

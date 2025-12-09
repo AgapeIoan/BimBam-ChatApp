@@ -1,8 +1,7 @@
+from typing import cast
 from uuid import uuid4
 
 import pytest
-
-from typing import cast
 from starlette.websockets import WebSocket
 
 from app.websockets.connection_manager import ConnectionManager
@@ -39,7 +38,7 @@ async def test_disconnect_removes_connection():
     ws = DummyWebSocket()
 
     await manager.add(user_id, cast(WebSocket, ws))
-    await manager.remove(user_id,cast(WebSocket, ws))
+    await manager.remove(user_id, cast(WebSocket, ws))
 
     assert await manager.has_connections(user_id) is False
 
