@@ -3,8 +3,12 @@ from uuid import UUID
 from fastapi import Cookie, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db import session as session_module
 from app.db.session import get_async_session
+from app.repositories.conversation_repository import ConversationRepository
+from app.repositories.message_repository import MessageRepository
 from app.repositories.user_repository import UserRepository
+from app.services.conversation_service import ConversationService
 from app.services.user_service import UserService
 from app.utils.jwt_utils import decode_access_token
 
@@ -32,3 +36,18 @@ async def get_current_user(acces_token: str = Cookie(default=None, alias="access
 def get_user_service(session: AsyncSession = Depends(get_async_session)) -> UserService:
     repo = UserRepository(session)
     return UserService(repo)
+
+async def get_db() -> AsyncSession:
+    """
+    Provide a database session without wrapping it in an implicit transaction block.
+    """
+    async with session_module.AsyncSessionLocal() as session:
+        yield session
+
+def get_conversation_service(
+    session: AsyncSession = Depends(get_async_session),
+) -> ConversationService:
+    conv_repo = ConversationRepository(session)
+    user_repo = UserRepository(session)
+    message_repo = MessageRepository(session)
+    return ConversationService(conv_repo, user_repo, message_repo)
