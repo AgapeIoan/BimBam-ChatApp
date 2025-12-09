@@ -1,9 +1,7 @@
-import pytest
 
 from app.api.v1.deps import get_current_user
 from app.db import session as session_module
 from app.utils.jwt_utils import create_access_token
-from tests.fixtures import user_factory
 
 
 def test_get_current_user_with_real_database(user_factory, event_loop):

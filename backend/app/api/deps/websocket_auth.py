@@ -7,8 +7,8 @@ from fastapi import WebSocket, status
 from fastapi.exceptions import WebSocketException
 from jwt import InvalidTokenError
 
-from app.core.config import get_settings
 import app.db.session as session_module
+from app.core.config import get_settings
 from app.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)

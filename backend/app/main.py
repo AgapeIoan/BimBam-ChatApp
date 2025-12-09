@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 try:
     from starlette.middleware.sessions import SessionMiddleware
 except Exception:  # pragma: no cover - optional dependency in some test environments

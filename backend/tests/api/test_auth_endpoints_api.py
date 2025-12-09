@@ -1,8 +1,8 @@
+from fastapi.testclient import TestClient
+
+from app.main import app
 from app.utils.jwt_utils import create_access_token
 from tests.helpers import _find_route_path
-from tests.fixtures import client, user_factory
-from fastapi.testclient import TestClient
-from app.main import app
 
 AUTH_ME_PATH = _find_route_path("get_me", method="GET")
 AUTH_LOGOUT_PATH = _find_route_path("logout", method="POST")

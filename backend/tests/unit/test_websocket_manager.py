@@ -6,6 +6,7 @@ from starlette.websockets import WebSocket
 
 from app.websockets.connection_manager import ConnectionManager
 
+
 class DummyWebSocket:
     def __init__(self):
         self.sent = []

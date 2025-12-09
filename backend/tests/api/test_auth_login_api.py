@@ -1,8 +1,8 @@
 import pytest
-from tests.helpers import _find_route_path
-from tests.fixtures import client
 from fastapi.testclient import TestClient
+
 from app.main import app
+from tests.helpers import _find_route_path
 
 
 def test_oauth_login_redirects_to_provider(client):
