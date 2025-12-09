@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
+from typing import Literal
 
 
 class MessageSendPayload(BaseModel):
@@ -10,6 +11,21 @@ class MessageSendPayload(BaseModel):
 
     conversation_id: UUID = Field(..., alias="conversationId")
     content: str
+
+
+class MessageEditPayload(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    message_id: UUID = Field(..., alias="messageId")
+    content: str
+
+
+class MessageReactionPayload(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    message_id: UUID = Field(..., alias="messageId")
+    emoji: str
+    action: Literal["add", "remove"]
 
 
 class MessageDeliveredPayload(BaseModel):
