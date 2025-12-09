@@ -85,12 +85,18 @@ def test_list_conversations_returns_previews_sorted_by_last_message(
 
     first = conversations[0]
     assert first["last_message"] == "latest message"
+    assert first["last_message_at"] is not None
     assert first["unread_count"] == 3
     assert len(first["other_users"]) == 1
     assert first["other_users"][0]["id"] == str(bob.id)
 
     second = conversations[1]
     assert second["last_message"] == "old message"
+    assert second["last_message_at"] is not None
     assert second["other_users"][0]["id"] == str(alice.id)
+
+    first_ts = datetime.fromisoformat(first["last_message_at"])
+    second_ts = datetime.fromisoformat(second["last_message_at"])
+    assert first_ts > second_ts
 
     app.dependency_overrides.pop(get_current_user, None)
