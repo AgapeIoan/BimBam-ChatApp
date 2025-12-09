@@ -1,13 +1,12 @@
-from typing import Dict, List, Optional
+from typing import List, Optional
 from uuid import UUID
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
-from sqlalchemy.orm import selectinload, aliased
+from sqlalchemy.orm import selectinload
 
 from app.models.conversation import Conversation
 from app.models.conversation_member import ConversationMember
-from app.models.message import Message
 
 
 class ConversationRepository:
@@ -15,10 +14,7 @@ class ConversationRepository:
         self.session = session
 
     async def create_conversation(
-        self,
-        *,
-        is_group: bool,
-        name: Optional[str] = None
+        self, *, is_group: bool, name: Optional[str] = None
     ) -> Conversation:
         """Create a new conversation (DM or Group)."""
         conv = Conversation(is_group=is_group, name=name)
@@ -32,7 +28,7 @@ class ConversationRepository:
         result = await self.session.execute(
             select(Conversation)
             .where(Conversation.id == conversation_id)
-            .options(selectinload(Conversation.members))   # load members
+            .options(selectinload(Conversation.members))  # load members
         )
         return result.scalars().one_or_none()
 
@@ -44,23 +40,25 @@ class ConversationRepository:
 
     async def get_dm_conversation(self, user_a_id: UUID, user_b_id: UUID) -> Optional[Conversation]:
         """
-        Returns an existing DM conversation between two users, if it exists.
+        Returns an existing DM conversation between two users, if exists.
         """
-        cm_a = aliased(ConversationMember)
-        cm_b = aliased(ConversationMember)
-
         result = await self.session.execute(
             select(Conversation)
-            .join(cm_a, and_(cm_a.conversation_id == Conversation.id, cm_a.user_id == user_a_id))
-            .join(cm_b, and_(cm_b.conversation_id == Conversation.id, cm_b.user_id == user_b_id))
+            .join(ConversationMember)
             .where(Conversation.is_group.is_(False))
-            .options(
-                selectinload(Conversation.members).selectinload(ConversationMember.user),
-            )
-            .limit(1)
+            .group_by(Conversation.id)
+            .having(func.count(ConversationMember.user_id) == 2)
+            .options(selectinload(Conversation.members))
         )
 
-        return result.scalars().first()
+        conversations = result.scalars().all()
+
+        for c in conversations:
+            members = [m.user_id for m in c.members]
+            if user_a_id in members and user_b_id in members:
+                return c
+
+        return None
 
     async def get_or_create_dm(self, user_a_id: UUID, user_b_id: UUID) -> Conversation:
         """
@@ -88,7 +86,9 @@ class ConversationRepository:
         await self.add_member(conv.id, creator_id, is_admin=True)
         return conv
 
-    async def add_member(self, conversation_id: UUID, user_id: UUID, is_admin: bool = False) -> ConversationMember:
+    async def add_member(
+        self, conversation_id: UUID, user_id: UUID, is_admin: bool = False
+    ) -> ConversationMember:
         """
         Add one user to the conversation.
         """
@@ -107,8 +107,7 @@ class ConversationRepository:
         Remove member from conversation.
         """
         result = await self.session.execute(
-            select(ConversationMember)
-            .where(
+            select(ConversationMember).where(
                 ConversationMember.conversation_id == conversation_id,
                 ConversationMember.user_id == user_id,
             )
@@ -117,7 +116,7 @@ class ConversationRepository:
 
         if not member:
             return None
-        
+
         await self.session.delete(member)
         await self.session.flush()
 
@@ -128,8 +127,7 @@ class ConversationRepository:
         Return True if user_id is part of conversation_id.
         """
         result = await self.session.execute(
-            select(ConversationMember)
-            .where(
+            select(ConversationMember).where(
                 ConversationMember.conversation_id == conversation_id,
                 ConversationMember.user_id == user_id,
             )
@@ -138,48 +136,23 @@ class ConversationRepository:
 
     async def get_user_conversations(self, user_id: UUID) -> List[Conversation]:
         """
-        Get all conversations (DM & group chats) a user is in,
-        with members + member.users preloaded.
+        Get all conversations (DM & group chats) a user is in.
         """
         result = await self.session.execute(
             select(Conversation)
             .join(ConversationMember)
             .where(ConversationMember.user_id == user_id)
-            .options(
-                selectinload(Conversation.members).selectinload(ConversationMember.user),
-            )
+            .options(selectinload(Conversation.members))
             .order_by(Conversation.created_at.desc())
         )
         return result.scalars().all()
-
-    async def get_last_messages_for_conversations(
-        self, conversation_ids: List[UUID]
-    ) -> Dict[UUID, Message]:
-        """
-        Fetch the latest message per conversation (PostgreSQL DISTINCT ON).
-        """
-        if not conversation_ids:
-            return {}
-
-        stmt = (
-            select(Message)
-            .where(Message.conversation_id.in_(conversation_ids))
-            .distinct(Message.conversation_id)
-            .order_by(Message.conversation_id, Message.created_at.desc())
-        )
-
-        result = await self.session.execute(stmt)
-        messages = result.scalars().all()
-        return {m.conversation_id: m for m in messages}
-
 
     async def update_last_read(self, conversation_id: UUID, user_id: UUID, message_id: UUID):
         """
         Update last read message and reset unread count.
         """
         result = await self.session.execute(
-            select(ConversationMember)
-            .where(
+            select(ConversationMember).where(
                 ConversationMember.conversation_id == conversation_id,
                 ConversationMember.user_id == user_id,
             )
@@ -204,5 +177,5 @@ class ConversationRepository:
         for m in members:
             if m.user_id != sender_id:
                 m.unread_count += 1
-    
+
         await self.session.flush()

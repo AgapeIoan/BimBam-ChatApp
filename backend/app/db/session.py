@@ -1,8 +1,9 @@
 from typing import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from app.core.config import get_settings  # use app., not backend.app
+from app import models  # noqa: F401 to register models with Base
+from app.core.config import get_settings
 
 settings = get_settings()
 
@@ -11,21 +12,16 @@ async_engine = create_async_engine(
     pool_pre_ping=True,
 )
 
-# session factory
 AsyncSessionLocal = async_sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=async_engine,
     class_=AsyncSession,
+    expire_on_commit=False,
 )
-
-async_session_maker = AsyncSessionLocal
 
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
-    """
-    Optional helper if you ever want to inject directly.
-    """
     async with AsyncSessionLocal() as session:
         async with session.begin():
             yield session

@@ -5,6 +5,7 @@ from pydantic import Field
 
 from app.schemas.user.user_base import UserBase
 
+
 class UserRead(UserBase):
     id: UUID = Field(..., alias="id")
     provider: str = Field(..., alias="provider")

@@ -1,12 +1,15 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
 from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict
 
 from app.schemas.user.user_read import UserRead
 
 
 class MessageRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
     id: UUID
     conversation_id: UUID
 
@@ -18,6 +21,3 @@ class MessageRead(BaseModel):
 
     delivered: bool
     read: bool
-
-    class Config:
-        from_attributes = True

@@ -1,9 +1,11 @@
-from datetime import datetime
 import uuid
-from sqlalchemy import ForeignKey, DateTime, Integer, func, UniqueConstraint, Boolean
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
-from app.db.base_class import Base
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.db.base import Base
 
 
 class ConversationMember(Base):
@@ -19,9 +21,7 @@ class ConversationMember(Base):
         ForeignKey("conversations.id", ondelete="CASCADE")
     )
 
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE")
-    )
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
 
     joined_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -29,8 +29,7 @@ class ConversationMember(Base):
     )
 
     last_read_message_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
-        nullable=True
+        UUID(as_uuid=True), nullable=True
     )
     unread_count: Mapped[int] = mapped_column(Integer, default=0)
 

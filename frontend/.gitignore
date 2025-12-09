@@ -8,6 +8,9 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+node_modules/
+node_modules/**
+
 dist
 dist-ssr
 *.local
@@ -22,3 +25,42 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Vite / build
+.vite/
+build/
+out/
+
+# TypeScript
+*.tsbuildinfo
+
+# Local env files
+.env
+.env.*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+debug.log
+
+# Coverage
+coverage/
+coverage.json
+
+# OS files
+.DS_Store
+
+# Lockfiles (optional - keep if you want to commit lockfile)
+# package-lock.json
+# yarn.lock
+
+# Optional: JetBrains
+.idea/
+
+# Temporary or system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
