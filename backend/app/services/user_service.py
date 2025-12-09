@@ -4,7 +4,7 @@ from uuid import UUID
 
 from app.repositories.user_repository import UserRepository
 from app.core.redis_client import set_user_online, set_user_offline
-from backend.app.models.user import User
+from app.models.user import User
 
 
 class UserService:
