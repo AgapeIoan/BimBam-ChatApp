@@ -58,7 +58,7 @@ class FriendRequestRepository:
         self._session.add(fr)
         await self._session.flush()
         await self._session.refresh(fr)
-        return fr
+        return await self.get_friend_request_by_id(fr.id)
 
     async def update_friend_request_status(
         self,
