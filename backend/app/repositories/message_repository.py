@@ -1,7 +1,7 @@
 from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -29,6 +29,42 @@ class MessageRepository:
         await self.session.flush()
         await self.session.refresh(msg)
         return msg
+
+    async def get_latest_for_conversations(self, conversation_ids: list[UUID]):
+        """
+        Return the latest message per conversation_id in the provided list.
+        """
+        if not conversation_ids:
+            return {}
+
+        last_message_subq = (
+            select(
+                Message.conversation_id.label("conversation_id"),
+                Message.id.label("id"),
+                Message.content.label("content"),
+                Message.created_at.label("created_at"),
+                func.row_number()
+                .over(
+                    partition_by=Message.conversation_id,
+                    order_by=Message.created_at.desc(),
+                )
+                .label("rn"),
+            )
+            .where(Message.conversation_id.in_(conversation_ids))
+        ).subquery()
+
+        result = await self.session.execute(
+            select(last_message_subq).where(last_message_subq.c.rn == 1)
+        )
+
+        latest_by_conv = {}
+        for row in result.mappings():
+            latest_by_conv[row["conversation_id"]] = {
+                "id": row["id"],
+                "content": row["content"],
+                "created_at": row["created_at"],
+            }
+        return latest_by_conv
 
     async def get_messages(
         self,
