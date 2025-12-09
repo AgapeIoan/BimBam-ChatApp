@@ -83,7 +83,7 @@ async def seed_demo_data(db: AsyncSession = Depends(get_db)):
     msg3 = Message(
         conversation_id=conv.id,
         sender_id=user2.id,
-        content="Yes, I’ll be there!",
+        content="Yes, I'll be there!",
         delivered=True,
         read=True,
     )
@@ -100,3 +100,4 @@ async def seed_demo_data(db: AsyncSession = Depends(get_db)):
         "user2_id": str(user2.id),
         "conversation_id": str(conv.id),
     }
+
