@@ -4,10 +4,10 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.deps import get_db
-from app.models.user import User
 from app.models.conversation import Conversation
 from app.models.conversation_member import ConversationMember
 from app.models.message import Message
+from app.models.user import User
 
 router = APIRouter(prefix="/debug", tags=["debug"])
 
