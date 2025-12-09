@@ -46,7 +46,6 @@ class FriendRequestRepository:
         return result.scalars().one_or_none()
 
     async def create_friend_request(
-    async def create_friend_request(
         self,
         from_user_id: UUID,
         to_user_id: UUID,
@@ -89,7 +88,6 @@ class FriendRequestRepository:
         )
         return result.scalars().all()
 
-
     async def get_outgoing_requests(
         self,
         user_id: UUID,
@@ -107,3 +105,10 @@ class FriendRequestRepository:
             .order_by(FriendRequest.created_at.desc())
         )
         return result.scalars().all()
+
+    async def delete_friend_request(self, request_id: UUID) -> None:
+        fr = await self.get_friend_request_by_id(request_id)
+        if fr:
+            await self._session.delete(fr)
+            await self._session.flush()
+        return None
