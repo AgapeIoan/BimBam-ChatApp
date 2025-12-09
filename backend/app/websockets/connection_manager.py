@@ -1,6 +1,6 @@
 import asyncio
-import logging
 import json
+import logging
 from typing import Dict, Set
 from uuid import UUID
 
@@ -21,7 +21,9 @@ class ConnectionManager:
         """Register an accepted websocket for a user."""
         async with self._lock:
             self._connections.setdefault(user_id, set()).add(websocket)
-            logger.debug("WebSocket added for user %s (total=%s)", user_id, len(self._connections[user_id]))
+            logger.debug(
+                "WebSocket added for user %s (total=%s)", user_id, len(self._connections[user_id])
+            )
 
     async def remove(self, user_id: UUID, websocket: WebSocket) -> None:
         """Remove a websocket for a user; cleanup empty buckets."""
@@ -32,7 +34,11 @@ class ConnectionManager:
             sockets.discard(websocket)
             if not sockets:
                 self._connections.pop(user_id, None)
-            logger.debug("WebSocket removed for user %s (remaining=%s)", user_id, len(sockets) if sockets else 0)
+            logger.debug(
+                "WebSocket removed for user %s (remaining=%s)",
+                user_id,
+                len(sockets) if sockets else 0,
+            )
 
     async def disconnect_all(self, user_id: UUID) -> None:
         """Forcefully drop all sockets for a user."""

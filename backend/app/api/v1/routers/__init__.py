@@ -1,4 +1,3 @@
-from . import auth
-from . import users
+from . import auth, users
 
 __all__ = ["auth", "users"]

@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import Optional, List
-from pydantic import BaseModel
+from typing import List, Optional
 from uuid import UUID
+
+from pydantic import BaseModel
 
 from app.schemas.conversation_member.conversation_member_read import ConversationMemberRead
 

@@ -26,7 +26,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     SessionMiddleware,
-    secret_key=settings.AUTH.JWT_SECRET_KEY, 
+    secret_key=settings.AUTH.JWT_SECRET_KEY,
 )
 
 app.add_middleware(
@@ -39,6 +39,7 @@ app.add_middleware(
 
 app.include_router(api_router, prefix="/api/v1")
 register_error_handlers(app)
+
 
 @app.get("/")
 def read_root():

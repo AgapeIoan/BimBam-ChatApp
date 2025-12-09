@@ -21,12 +21,12 @@ PROJECT_ROOT = CURRENT_DIR.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from app.core.config import Settings, get_settings
-from app.db.init_db import init_db
-from app.db.session import AsyncSessionLocal
-from app.models.user import User
-from app.repositories.conversation_repository import ConversationRepository
-from app.repositories.user_repository import UserRepository
+from app.core.config import Settings, get_settings  # noqa: E402
+from app.db.init_db import init_db  # noqa: E402
+from app.db.session import AsyncSessionLocal  # noqa: E402
+from app.models.user import User  # noqa: E402
+from app.repositories.conversation_repository import ConversationRepository  # noqa: E402
+from app.repositories.user_repository import UserRepository  # noqa: E402
 
 
 def _user_id_from_token(token: str, settings: Settings) -> UUID:
@@ -78,7 +78,9 @@ async def seed(tokens: Sequence[str], skip_dm: bool, settings: Settings) -> None
             conv_repo = ConversationRepository(session)
             convo = await conv_repo.get_or_create_dm(users[0].id, users[1].id)
             conversation_id = convo.id
-            print(f"Ensured DM conversation between {users[0].id} and {users[1].id}: {conversation_id}")
+            print(
+                f"Ensured DM conversation between {users[0].id} and {users[1].id}: {conversation_id}"
+            )
 
         await session.commit()
 

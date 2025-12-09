@@ -2,6 +2,7 @@ from uuid import UUID
 
 from app.repositories.friendship_repository import FriendshipRepository
 from app.repositories.friend_request_repository import FriendRequestRepository
+from app.repositories.friendship_repository import FriendshipRepository
 from app.repositories.user_repository import UserRepository
 from app.models.enums import FriendRequestStatus
 from app.schemas.friend_request.friend_request_response import FriendRequestResponse

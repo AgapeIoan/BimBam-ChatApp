@@ -1,6 +1,6 @@
-from pydantic import SecretStr, PostgresDsn
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings
-from typing import Optional
+
 
 class DatabaseSettings(BaseSettings):
     DB_URL: str

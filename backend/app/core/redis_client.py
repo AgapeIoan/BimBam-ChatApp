@@ -4,6 +4,7 @@ from uuid import UUID
 
 from redis import asyncio as redis
 from redis.exceptions import RedisError
+
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -12,21 +13,25 @@ settings = get_settings()
 
 redis_client = redis.from_url(
     settings.REDIS_URL,
-    decode_responses=True,  
+    decode_responses=True,
 )
 
 
 def k_online_users() -> str:
     return "presence:online_users"
 
+
 def k_user_online(user_id: Union[UUID, str]) -> str:
     return f"presence:user:{user_id}:online"
+
 
 def k_user_typing(conversation_id: Union[UUID, str], user_id: Union[UUID, str]) -> str:
     return f"typing:conv:{conversation_id}:user:{user_id}"
 
+
 def k_unread(conversation_id: Union[UUID, str], user_id: Union[UUID, str]) -> str:
     return f"unread:conv:{conversation_id}:user:{user_id}"
+
 
 async def set_user_online(user_id: Union[UUID, str], ttl: int = 60):
     try:
@@ -38,6 +43,7 @@ async def set_user_online(user_id: Union[UUID, str], ttl: int = 60):
     except RedisError as e:
         logger.error(f"Redis error in set_user_online: {e}")
 
+
 async def set_user_offline(user_id: Union[UUID, str]):
     try:
         uid = str(user_id)
@@ -47,6 +53,7 @@ async def set_user_offline(user_id: Union[UUID, str]):
         await pipe.execute()
     except RedisError as e:
         logger.error(f"Redis error in set_user_offline: {e}")
+
 
 async def get_online_users() -> List[str]:
     try:
@@ -63,6 +70,7 @@ async def is_online(user_id: Union[UUID, str]) -> bool:
     except RedisError as e:
         logger.error(f"Redis error in is_online: {e}")
         return False
+
 
 async def set_typing(conversation_id: Union[UUID, str], user_id: Union[UUID, str], ttl: int = 5):
     """
@@ -89,7 +97,10 @@ async def is_typing(conversation_id: Union[UUID, str], user_id: Union[UUID, str]
         logger.error(f"Redis error in is_typing: {e}")
         return False
 
-async def increment_unread(conversation_id: Union[UUID, str], user_id: Union[UUID, str], amount: int = 1):
+
+async def increment_unread(
+    conversation_id: Union[UUID, str], user_id: Union[UUID, str], amount: int = 1
+):
     """
     Increase the unread count for this conversation for this user.
     Key: unread:conv:<conversation_id>:user:<user_id>
@@ -124,6 +135,7 @@ async def get_unread(conversation_id: Union[UUID, str], user_id: Union[UUID, str
         logger.error(f"Redis error in get_unread: {e}")
         return 0
 
+
 async def get_all_unread_for_user(user_id: Union[UUID, str]) -> Dict[str, int]:
     unread_map = {}
     try:
@@ -134,7 +146,7 @@ async def get_all_unread_for_user(user_id: Union[UUID, str]) -> Dict[str, int]:
             conv_id = key.split(":")[2]
             unread_count = await redis_client.get(key)
             unread_map[conv_id] = int(unread_count or 0)
-            
+
     except RedisError as e:
         logger.error(f"Redis error in get_all_unread_for_user: {e}")
         return {}
