@@ -6,6 +6,7 @@ from app.utils.errors.resource_not_found import ResourceNotFoundException
 from app.utils.errors.user_not_found_exception import UserNotFoundException
 from app.utils.errors.unauthorized_exception import UnauthorizedException
 from app.utils.errors.validation_exception import ValidationException
+from app.utils.errors.forbidden_exception import ForbiddenException
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
@@ -44,6 +45,12 @@ def register_error_handlers(app):
     async def handle_user_not_found_error(request: Request, exc: UserNotFoundException):
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND, content={"error": exc.message}
+        )
+
+    @app.exception_handler(ForbiddenException)
+    async def handle_forbidden_error(request: Request, exc: ForbiddenException):
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN, content={"error": exc.message}
         )
 
     @app.exception_handler(Exception)
