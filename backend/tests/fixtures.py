@@ -1,5 +1,5 @@
 import asyncio
-from typing import Iterator, Callable
+from typing import Callable, Iterator, Optional
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.api.deps.websocket_auth import websocket_auth
 from app.db import session as session_module
-from app.db.session import AsyncSessionLocal  
 from app.db.base import Base
 from app.main import app
 from app.websockets.connection_manager import connection_manager
@@ -99,7 +98,7 @@ def reset_db(event_loop, session_factory):
 
 
 @pytest.fixture
-def user_factory() -> Callable[[str, str], User]:
+def user_factory() -> Callable[[str, str, str | None, str | None], User]:
     """
     Synchronous factory to create a User in the test database.
 
@@ -107,11 +106,16 @@ def user_factory() -> Callable[[str, str], User]:
         user = user_factory("email@example.com", "username")
     """
 
-    def _create_user(email: str, username: str) -> User:
+    def _create_user(email: str, username: str, provider: Optional[str] = "local", provider_id: Optional[str] = None) -> User:
         async def _inner() -> User:
-            async with AsyncSessionLocal() as session:
+            async with session_module.AsyncSessionLocal() as session:
                 assert isinstance(session, AsyncSession)
-                user = User(email=email, username=username)
+                user = User(
+                    email=email,
+                    username=username,
+                    provider=provider or "local",
+                    provider_id=provider_id or email,
+                )
                 session.add(user)
                 await session.commit()
                 await session.refresh(user)

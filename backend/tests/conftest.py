@@ -1,5 +1,7 @@
 import os
 
+pytest_plugins = ["tests.fixtures"]
+
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("DATABASE__DB_URL", "postgresql+asyncpg://user:pass@localhost:5432/testdb")
 os.environ.setdefault("DATABASE__DB_HOST", "localhost")
