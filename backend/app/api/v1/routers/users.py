@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, Query
 from typing import List
+
+from fastapi import APIRouter, Depends, Query
 
 from app.api.v1.deps import get_current_user, get_user_service
 from app.models.user import User

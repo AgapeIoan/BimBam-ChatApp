@@ -3,8 +3,8 @@ from uuid import UUID
 
 from app.core.redis_client import set_user_offline, set_user_online
 from app.models.user import User
-from app.schemas.user.user_response import UserResponse
 from app.repositories.user_repository import UserRepository
+from app.schemas.user.user_response import UserResponse
 from app.utils.errors.validation_exception import ValidationException
 
 
