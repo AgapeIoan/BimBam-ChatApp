@@ -1,4 +1,4 @@
-import type { ConversationUser } from './conversationUser';
+import type { UserRead } from "../user/userRead";
 
 export type ConversationPreview = {
   id: string;
@@ -6,6 +6,6 @@ export type ConversationPreview = {
   name?: string;
   lastMessage?: string;
   lastMessageAt?: string;
-  otherUsers: ConversationUser[];
+  otherUsers: UserRead[];
   unreadCount: number;
 };

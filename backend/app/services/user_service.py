@@ -16,6 +16,7 @@ class UserService:
 
     def _map_to_user_response(self, user: User):
         return UserResponse(
+            id=str(user.id),
             email=user.email,
             username=user.username,
             avatarUrl=user.avatar_url,

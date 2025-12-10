@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Check, CheckCheck, XCircle } from 'lucide-react';
-import type { Contact, Message } from '../types/conversation/chat';
+import type { Message } from '../types/conversation/chat';
+import type { FriendListItem } from '../types/friend/friendListItem';
 
 interface ChatViewProps {
-  contact?: Contact;
+  contact?: FriendListItem
   messages: Message[];
   onSendMessage: (text: string) => void;
   onEditGroup?: (conversationId: string) => void;
@@ -68,23 +69,23 @@ export function ChatView({ contact, messages, onSendMessage }: ChatViewProps) {
         <div className="flex items-center gap-3">
           <div className="relative">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white">
-              {contact. avatarUrl ? (
+              {contact.friend.avatarUrl ? (
                 <img
-                  src={contact.avatarUrl}
-                  alt={`${contact.username}'s avatar`}
+                  src={contact.friend.avatarUrl}
+                  alt={`${contact.friend.username}'s avatar`}
                   className="w-10 h-10 rounded-full"
                 />
               ) : (
-                contact.username.charAt(0).toUpperCase()
+                contact.friend.username.charAt(0).toUpperCase()
               )}
             </div>
-            {contact.lastseenAt && (
+            {contact.isOnline && (
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
             )}
           </div>
           <div>
-            <h2 className="text-gray-900">{contact.username}</h2>
-            <p className="text-gray-500 text-sm">{contact.lastseenAt ? 'Active now' : 'Offline'}</p>
+            <h2 className="text-gray-900">{contact.friend.username}</h2>
+            <p className="text-gray-500 text-sm">{contact.friend.lastSeen ? 'Active now' : 'Offline'}</p>
           </div>
         </div>
       </div>

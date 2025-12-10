@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { X, Users } from "lucide-react";
-import type { Contact } from "../types/conversation/chat";
+import type { FriendListItem } from "../types/friend/friendListItem";
 
 interface GroupModalProps {
   isOpen: boolean;
   mode: "create" | "edit";
   onClose: () => void;
-  friends: Contact[];
+  friends: FriendListItem[];
   initialName?: string;
   initialMemberIds?: string[];
   onSubmit: (name: string, memberIds: string[]) => void;
@@ -63,13 +63,13 @@ export function GroupModal({
 
   const filteredFriends = friends
     .filter((friend) =>
-      friend.username
+      friend.friend.username
         .toLowerCase()
         .includes(searchQuery.toLowerCase()),
     )
     .sort((a, b) => {
-      const aSelected = selectedFriends.has(a.id);
-      const bSelected = selectedFriends.has(b.id);
+      const aSelected = selectedFriends.has(a.friend.id);
+      const bSelected = selectedFriends.has(b.friend.id);
 
       if (aSelected === bSelected) return 0;
       return aSelected ? -1 : 1;
@@ -151,13 +151,13 @@ export function GroupModal({
               ) : (
                 filteredFriends.map((friend) => {
                   const isSelected = selectedFriends.has(
-                    friend.id,
+                    friend.friend.id,
                   );
                   return (
                     <button
-                      key={friend.id}
+                      key={friend.friend.id}
                       onClick={() =>
-                        handleToggleFriend(friend.id)
+                        handleToggleFriend(friend.friend.id)
                       }
                       className={`w-full p-3 rounded-lg border transition-all flex items-center gap-3 ${
                         isSelected
@@ -166,15 +166,15 @@ export function GroupModal({
                       }`}
                     >
                       {/* Avatar */}
-                      {friend.avatarUrl ? (
+                      {friend.friend.avatarUrl ? (
                         <img
-                          src={friend.avatarUrl}
-                          alt={friend.username}
+                          src={friend.friend.avatarUrl}
+                          alt={friend.friend.username}
                           className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                         />
                       ) : (
                         <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white flex-shrink-0">
-                          {friend.username
+                          {friend.friend.username
                             .substring(0, 2)
                             .toUpperCase()}
                         </div>
@@ -183,10 +183,10 @@ export function GroupModal({
                       {/* Info */}
                       <div className="flex-1 text-left min-w-0">
                         <p className="text-gray-900 truncate">
-                          {friend.username}
+                          {friend.friend.username}
                         </p>
                         <p className="text-sm text-gray-500 truncate">
-                          {friend.email}
+                          {friend.friend.email}
                         </p>
                       </div>
 

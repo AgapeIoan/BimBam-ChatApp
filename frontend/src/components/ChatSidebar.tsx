@@ -1,10 +1,10 @@
 import { Search, MessageCircle, MoreVertical, LogOut, UserPlus, UserCircle, Users } from 'lucide-react';
-import type { ConversationUser } from '../types/conversation/conversationUser';
 import type { ConversationPreview } from '../types/conversation/conversationPreview';
+import type { FriendListItem } from '../types/friend/friendListItem';
 import { useState } from 'react';
 
 interface ChatSidebarProps {
-  contacts: ConversationUser[];
+  contacts: FriendListItem[];
   conversations: ConversationPreview[];
   selectedContactId: string | null;
   onSelectContact: (id: string) => void;
@@ -31,10 +31,11 @@ export function ChatSidebar({
   onOpenCreateGroup
 }: ChatSidebarProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // For each contact, find unread count from conversations
   function getUnreadCount(contactId: string) {
-    const conv = conversations.find(c => c.otherUsers.some(u => u.id === contactId));
+    const conv = conversations.find(c => Array.isArray(c.otherUsers) && c.otherUsers.some(u => u.id === contactId));
     return conv ? conv.unreadCount : 0;
   }
 
@@ -147,8 +148,10 @@ export function ChatSidebar({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search conversations..."
+              placeholder="Search conversations or people..."
               className="w-full pl-10 pr-4 py-2 bg-gray-100 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
             />
           </div>
         )}
@@ -156,45 +159,59 @@ export function ChatSidebar({
 
       {/* Contacts List */}
       <div className="flex-1 overflow-y-auto">
-        {contacts.map((contact) => (
-          <button
-            key={contact.id}
-            onClick={() => onSelectContact(contact.id)}
-            className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100 ${
-              selectedContactId === contact.id ? 'bg-blue-50' : ''
-            }`}
-            title={isCollapsed ? contact.username : undefined}
-          >
-            {/* Avatar */}
-            <div className="relative flex-shrink-0">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white">
-                {/* Show avatar image if available */}
-                {contact.avatarUrl ? (
-                  <img src={contact.avatarUrl} alt={contact.username} className="w-12 h-12 rounded-full object-cover" />
-                ) : (
-                  contact.username[0].toUpperCase()
+        {contacts
+          .filter(contact => {
+            if (!searchQuery.trim()) {
+              return getUnreadCount(contact.friend.id) > 0;
+            }
+            const query = searchQuery.toLowerCase();
+            return (
+              contact.friend.username.toLowerCase().includes(query) ||
+              contact.friend.email.toLowerCase().includes(query)
+            );
+          })
+          .map((contact) => (
+            <button
+              key={contact.friend.id}
+              onClick={() => onSelectContact(contact.friend.id)}
+              className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100 ${
+                selectedContactId === contact.friend.id ? 'bg-blue-50' : ''
+              }`}
+              title={isCollapsed ? contact.friend.username : undefined}
+            >
+              {/* Avatar */}
+              <div className="relative flex-shrink-0">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white">
+                  {/* Show avatar image if available */}
+                  {contact.friend.avatarUrl ? (
+                    <img src={contact.friend.avatarUrl} alt={contact.friend.username} className="w-12 h-12 rounded-full object-cover" />
+                  ) : (
+                    contact.friend.username[0].toUpperCase()
+                  )}
+                </div>
+                {contact.friend.lastSeen && (
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                )}
+                {getUnreadCount(contact.friend.id) > 0 && (
+                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
+                    {getUnreadCount(contact.friend.id)}
+                  </div>
                 )}
               </div>
-              {contact.lastseenAt && (
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-              )}
-              {getUnreadCount(contact.id) > 0 && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
-                  {getUnreadCount(contact.id)}
+              {/* Contact Info */}
+              {!isCollapsed && (
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-gray-900 truncate">{contact.friend.username}</span>
+                  </div>
+                  {/* Show 'No messages yet...' if contact has no messages */}
+                  {getUnreadCount(contact.friend.id) === 0 && (
+                    <div className="text-sm text-gray-400 italic">No messages yet...</div>
+                  )}
                 </div>
               )}
-            </div>
-            {/* Contact Info */}
-            {!isCollapsed && (
-              <div className="flex-1 min-w-0 text-left">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-gray-900 truncate">{contact.username}</span>
-                  {/* Optionally show last seen or other info */}
-                </div>
-              </div>
-            )}
-          </button>
-        ))}
+            </button>
+          ))}
       </div>
     </div>
   );

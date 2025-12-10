@@ -9,7 +9,7 @@ interface AccountModalProps {
   onSave: (account: UserAccountDetails) => void;
 }
 
-export function AccountModal({ isOpen, onClose, account, onSave }: AccountModalProps) {
+export function AccountModal({ isOpen, onClose, account, onSave }: Readonly<AccountModalProps>) {
   const [formData, setFormData] = useState<UserAccountDetails>(account);
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState('');

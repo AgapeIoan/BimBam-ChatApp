@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 class UserResponse(BaseModel):
+    id: str = Field(..., alias="id")
     email: EmailStr = Field(..., alias="email")
     username: str = Field(..., alias="username")
     avatar_url: str | None = Field(None, alias="avatarUrl")

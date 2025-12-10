@@ -4,13 +4,11 @@ import { ChatView } from './ChatView';
 import { FriendRequestsModal } from './FriendRequestsModal';
 import { AccountModal } from './AccountModal';
 import { GroupModal } from "./GroupModal";
-import { v4 as uuidv4 } from 'uuid';
 import type { UserAccountDetails } from '../types/user/userAccountDetails';
 import type { Message} from '../types/conversation/chat';
-import type { ConversationUser } from '../types/conversation/conversationUser';
 import type { ConversationPreview } from '../types/conversation/conversationPreview';
 import type { FriendRequestApi } from '../types/friendRequests/friendRequestApi';
-import type { UserSearchResult } from '../types/user/userSearchResult';
+import type { UserSearchResult } from '../types/users/userSearchResult';
 import { loadConversationPreviews } from '../services/conversationService';
 import { getMe, searchUsers } from '../services/userService';
 import {
@@ -21,6 +19,8 @@ import {
   listIncomingRequests,
   listOutgoingRequests,
 } from '../services/friendRequestsService';
+import type { FriendListItem } from '../types/friend/friendListItem'; 
+import { listMyFriends } from '../services/friendsService';
 
 type GroupModalMode = "create" | "edit";
 type SearchType = "username" | "email";
@@ -32,7 +32,7 @@ export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
-  const [friendsList, setFriendsList] = useState<ConversationUser[]>([]);
+  const [friendsList, setFriendsList] = useState<FriendListItem[]>([]);
   const [userAccount, setUserAccount] = useState<UserAccountDetails>({
     id: '',
     email: '',
@@ -82,15 +82,25 @@ export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
       }
     }
     fetchUserAccount();
+
+    async function fetchFriendsList() {
+      try {
+        const friends = await listMyFriends();
+        setFriendsList(friends);
+      } catch (e) {
+        console.error('Failed to fetch friends list:', e);
+      } 
+    }
+    fetchFriendsList();
   }, []);
 
-  const selectedContact = friendsList.find((c) => c.id === selectedContactId);
+  const selectedContact = friendsList.find((c) => c.friend.id === selectedContactId);
   const currentMessages = selectedContactId ? messages[selectedContactId] || [] : [];
 
   const handleSendMessage = (text: string) => {
     if (!selectedContactId) return;
 
-    const selectedFriend = friendsList.find((c) => c.id === selectedContactId);
+    const selectedFriend = friendsList.find((c) => c.friend.id === selectedContactId);
     if (!selectedFriend) {
       console.log('Cannot send message: contact not found');
       return;
@@ -131,17 +141,11 @@ export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
 
   const handleAcceptRequest = async (id: string) => {
     try {
-      const updated = await acceptFriendRequest(id);
-      const newFriend: ConversationUser = {
-        id: uuidv4(),
-        username: updated.fromUser.username,
-        email: updated.fromUser.email,
-        avatarUrl: updated.fromUser.avatarUrl ?? "",
-        provider:  'debug',
-        lastseenAt: new Date(),
-      };
-      setFriendsList((prev) => [...prev, newFriend]);
-      setIncomingRequests((prev) => prev.filter((r) => r.id !== id));
+      await acceptFriendRequest(id);
+      const friends = await listMyFriends();
+      setFriendsList(friends);
+      const incoming = await listIncomingRequests();
+      setIncomingRequests(incoming);
     } catch (e) {
       console.error(e);
     }
@@ -178,7 +182,7 @@ export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
   const handleSearchUsers = async (query: string, type: SearchType): Promise<UserSearchResult[]> => {
     const results = await searchUsers(query, type);
     return results.map(user => {
-      const isFriend = friendsList.some(f => f.username === user.username);
+      const isFriend = friendsList.some(f => f.friend.id === user.id);
       const hasPendingRequest = incomingRequests.some(r => r.fromUser.username === user.username) ||
         sentRequests.some(r => r.toUser.username === user.username);
       return {
@@ -216,7 +220,7 @@ export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
   const handleGroupModalSubmit = (groupName: string, memberIds: string[]) => {
     if (groupModalMode === "create") {
       // Create new group
-      const selectedMembers = friendsList.filter((f) => memberIds.includes(f.id));
+      const selectedMembers = friendsList.filter((f) => memberIds.includes(f.friend.id));
       const newGroup: ConversationPreview = {
         id: `group-${Date.now()}`,
         isGroup: true,
@@ -224,12 +228,12 @@ export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
         lastMessage: "last message",
         lastMessageAt: "Just now",
         otherUsers: selectedMembers.map((member) => ({
-          username: member.username,
-          email: member.email,
-          avatarUrl: member.avatarUrl,
+          username: member.friend.username,
+          email: member.friend.email,
+          avatarUrl: member.friend.avatarUrl ?? "",
           lastseenAt: new Date(),
           provider: "email",
-          id: member.id,
+          id: member.friend.id,
         })),
         unreadCount: 0,
       };
@@ -238,7 +242,7 @@ export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
       setSelectedContactId(newGroup.id);
     } else if (groupModalMode === "edit" && editingGroup) {
       // Edit group
-      const selectedMembers = friendsList.filter((f) => memberIds.includes(f.id));
+      const selectedMembers = friendsList.filter((f) => memberIds.includes(f.friend.id));
       setConversations((prev) =>
         prev.map((conv) =>
           conv.id === editingGroup.id
@@ -246,10 +250,10 @@ export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
                 ...conv,
                 name: groupName,
                 other_users: selectedMembers.map((member) => ({
-                  id: member.id,
-                  username: member.username,
-                  email: member.email,
-                  avatarUrl: member.avatarUrl,
+                  id: member.friend.id,
+                  username: member.friend.username,
+                  email: member.friend.email,
+                  avatarUrl: member.friend.avatarUrl,
                   isOnline: false,
                 })),
               }
@@ -261,13 +265,32 @@ export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
     setEditingGroup(null);
   };
 
+  // Custom handler for selecting contact
+  const handleSelectContact = async (contactId: string) => {
+    // Verifică dacă există conversație cu mesaje pentru contactul selectat
+    const hasConversation = conversations.some(
+      (conv) => Array.isArray(conv.otherUsers) && conv.otherUsers.some((u) => u.id === contactId)
+    );
+    if (!hasConversation) {
+      // Creează sau deschide conversația directă
+      try {
+        await import('../services/conversationService').then(m => m.openOrCreateDirectConversation(contactId));
+        const previews = await loadConversationPreviews();
+        setConversations(previews);
+      } catch (e) {
+        console.error('Failed to open or create direct conversation:', e);
+      }
+    }
+    setSelectedContactId(contactId);
+  };
+
   return (
     <div className="h-screen flex bg-gray-50">
       <ChatSidebar
         contacts={friendsList}
         conversations={conversations}
         selectedContactId={selectedContactId}
-        onSelectContact={setSelectedContactId}
+        onSelectContact={handleSelectContact}
         onLogout={onLogout}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
