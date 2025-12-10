@@ -1,6 +1,7 @@
 import pytest
-from app.repositories.user_repository import UserRepository
 from sqlalchemy.exc import IntegrityError
+
+from app.repositories.user_repository import UserRepository
 
 
 @pytest.mark.asyncio

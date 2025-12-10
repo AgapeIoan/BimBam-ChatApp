@@ -1,5 +1,6 @@
-import app.core.redis_client as rc
 import pytest
+
+import app.core.redis_client as rc
 from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.message_repository import MessageRepository
 from app.repositories.user_repository import UserRepository

@@ -25,8 +25,7 @@ from app.core.config import Settings, get_settings  # noqa: E402
 from app.db.init_db import init_db  # noqa: E402
 from app.db.session import AsyncSessionLocal  # noqa: E402
 from app.models.user import User  # noqa: E402
-from app.repositories.conversation_repository import \
-    ConversationRepository  # noqa: E402
+from app.repositories.conversation_repository import ConversationRepository  # noqa: E402
 from app.repositories.user_repository import UserRepository  # noqa: E402
 
 

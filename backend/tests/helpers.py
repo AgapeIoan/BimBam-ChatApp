@@ -5,9 +5,10 @@ try:
 except Exception:  # pragma: no cover - fallback used only in some test environments
     _fakeredis_aioredis = None
 
+from fastapi.routing import APIRoute
+
 from app.core import redis_client
 from app.main import app
-from fastapi.routing import APIRoute
 
 
 class _SimpleAsyncFakeRedis:

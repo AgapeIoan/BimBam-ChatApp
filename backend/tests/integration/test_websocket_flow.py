@@ -1,10 +1,11 @@
 import pytest
-from app.api.deps.websocket_auth import websocket_auth
-from app.main import app
-from app.repositories.message_repository import MessageRepository
 from fastapi import WebSocket, status
 from fastapi.exceptions import WebSocketException
 from starlette.websockets import WebSocketDisconnect
+
+from app.api.deps.websocket_auth import websocket_auth
+from app.main import app
+from app.repositories.message_repository import MessageRepository
 
 
 def test_auth_fail_missing_token(client):
