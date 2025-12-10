@@ -36,11 +36,15 @@ class FriendRequestService:
         if await self.friendship_repo.are_friends(from_user_id, to_user_id):
             raise HTTPException(400, "You are already friends")
 
-        existing = await self.friend_request_repo.get_friend_request(from_user_id, to_user_id)
+        existing = await self.friend_request_repo.get_friend_request(
+            from_user_id, to_user_id
+        )
         if existing:
             raise HTTPException(400, "Friend request already sent")
 
-        return await self.friend_request_repo.create_friend_request(from_user_id, to_user_id)
+        return await self.friend_request_repo.create_friend_request(
+            from_user_id, to_user_id
+        )
 
     async def accept_friend_request(self, request_id: UUID, current_user_id: UUID):
         fr = await self.friend_request_repo.get_friend_request_by_id(request_id)
@@ -54,7 +58,9 @@ class FriendRequestService:
         await self.friend_request_repo.update_friend_request_status(
             fr, FriendRequestStatus.ACCEPTED
         )
-        await self.friendship_repo.create_friendship_pair(fr.from_user_id, fr.to_user_id)
+        await self.friendship_repo.create_friendship_pair(
+            fr.from_user_id, fr.to_user_id
+        )
         return fr
 
     async def decline_friend_request(self, request_id: UUID, current_user_id: UUID):
