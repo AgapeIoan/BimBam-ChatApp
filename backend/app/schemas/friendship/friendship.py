@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.user.user_read import UserRead
 
@@ -15,9 +15,7 @@ class FriendshipRead(BaseModel):
     last_read_message_id: UUID | None = Field(None, alias="lastReadMessageId")
     unread_count: int = Field(..., alias="unreadCount")
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 class FriendListItem(BaseModel):
     friend: UserRead
@@ -25,6 +23,4 @@ class FriendListItem(BaseModel):
     last_read_message_id: Optional[UUID] = Field(None, alias="lastReadMessageId")
     unread_count: int = Field(..., alias="unreadCount")
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)

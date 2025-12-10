@@ -1,14 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Check, CheckCheck, XCircle } from 'lucide-react';
+import { Send } from 'lucide-react';
 import type { Contact, Message } from './ChatApp';
+import MessageItem from './MessageItem';
 
 interface ChatViewProps {
   contact?: Contact;
   messages: Message[];
   onSendMessage: (text: string) => void;
+  onEditMessage?: (messageId: string, newText: string) => void;
+  onReact?: (messageId: string, emoji: string) => void;
 }
 
-export function ChatView({ contact, messages, onSendMessage }: ChatViewProps) {
+export function ChatView({ contact, messages, onSendMessage, onEditMessage, onReact }: ChatViewProps) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -28,24 +31,7 @@ export function ChatView({ contact, messages, onSendMessage }: ChatViewProps) {
     }
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  };
-
-  const renderMessageStatus = (status?: 'sent' | 'delivered' | 'read' | 'failed') => {
-    switch (status) {
-      case 'sent':
-        return <Check className="w-4 h-4 text-blue-100" />;
-      case 'delivered':
-        return <CheckCheck className="w-4 h-4 text-blue-100" />;
-      case 'read':
-        return <CheckCheck className="w-4 h-4 text-blue-300" />;
-      case 'failed':
-        return <XCircle className="w-4 h-4 text-red-300" />;
-      default:
-        return null;
-    }
-  };
+  // Message status rendering moved into MessageItem; helpers removed.
 
   if (!contact) {
     return (
@@ -83,30 +69,12 @@ export function ChatView({ contact, messages, onSendMessage }: ChatViewProps) {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
         {messages.map((message) => (
-          <div
+          <MessageItem
             key={message.id}
-            className={`flex ${message.sender === 'me' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-md px-4 py-2 rounded-2xl ${
-                message.sender === 'me'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-900 border border-gray-200'
-              }`}
-            >
-              <p>{message.text}</p>
-              <div className="flex items-center gap-1 mt-1">
-                <span
-                  className={`text-xs ${
-                    message.sender === 'me' ? 'text-blue-100' : 'text-gray-500'
-                  }`}
-                >
-                  {formatTime(message.timestamp)}
-                </span>
-                {message.sender === 'me' && renderMessageStatus(message.status)}
-              </div>
-            </div>
-          </div>
+            message={message}
+            onEdit={(id, newText) => onEditMessage?.(id, newText)}
+            onReact={(id, emoji) => onReact?.(id, emoji)}
+          />
         ))}
         <div ref={messagesEndRef} />
       </div>

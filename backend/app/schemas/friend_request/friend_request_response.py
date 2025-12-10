@@ -2,7 +2,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import FriendRequestStatus
 from app.schemas.user.user_response import UserResponse
@@ -16,6 +16,4 @@ class FriendRequestResponse(BaseModel):
     sender: UserResponse = Field(..., alias="fromUser")
     receiver: UserResponse = Field(..., alias="toUser")
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)

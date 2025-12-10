@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -12,6 +12,21 @@ class MessageSendPayload(BaseModel):
     content: str
 
 
+class MessageEditPayload(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    message_id: UUID = Field(..., alias="messageId")
+    content: str
+
+
+class MessageReactionPayload(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    message_id: UUID = Field(..., alias="messageId")
+    emoji: str
+    action: Literal["add", "remove"]
+
+
 class MessageDeliveredPayload(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -22,6 +37,8 @@ class MessageDeliveredPayload(BaseModel):
     created_at: datetime = Field(..., alias="createdAt")
     delivered: bool = Field(..., alias="delivered")
     read: bool = Field(..., alias="read")
+    edited_at: Optional[datetime] = Field(None, alias="editedAt")
+    edited_by_id: Optional[UUID] = Field(None, alias="editedById")
 
 
 class MessageAckPayload(BaseModel):

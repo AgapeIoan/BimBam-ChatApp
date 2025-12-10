@@ -12,3 +12,5 @@ class UserRead(UserBase):
     id: UUID = Field(..., alias="id")
     provider: str = Field(..., alias="provider")
     last_seen: datetime = Field(..., alias="lastSeen")
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)

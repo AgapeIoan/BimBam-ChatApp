@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatView } from './ChatView';
 import { FriendRequestsModal } from './FriendRequestsModal';
 import { AccountModal } from './AccountModal';
 import type { UserAccount } from './AccountModal';
+import ws from '../api/ws';
 
 export interface Message {
   id: string;
@@ -11,6 +12,9 @@ export interface Message {
   sender: 'me' | 'them';
   timestamp: Date;
   status?: 'sent' | 'delivered' | 'read' | 'failed';
+  editedAt?: string | null;
+  editedById?: string | null;
+  reactions?: { emoji: string; count: number; reactedByMe?: boolean }[];
 }
 
 export interface Contact {
@@ -128,6 +132,11 @@ const mockConversations: Record<string, Message[]> = {
       sender: 'me',
       timestamp: new Date(Date.now() - 3500000),
       status: 'read',
+      editedAt: new Date(Date.now() - 1800000).toISOString(),
+      reactions: [
+        { emoji: '👍', count: 2, reactedByMe: true },
+        { emoji: '😂', count: 1 },
+      ],
     },
     {
       id: '3',
@@ -147,6 +156,7 @@ const mockConversations: Record<string, Message[]> = {
       text: 'See you tomorrow!',
       sender: 'them',
       timestamp: new Date(Date.now() - 120000),
+      reactions: [{ emoji: '❤️', count: 1 }],
     },
   ],
   '2': [
@@ -332,6 +342,41 @@ export function ChatApp({ onLogout }: { onLogout: () => void }) {
   const selectedContact = friendsList.find((c) => c.id === selectedContactId);
   const currentMessages = selectedContactId ? messages[selectedContactId] || [] : [];
 
+  useEffect(() => {
+    ws.connect();
+    const unsub = ws.subscribe((env: any) => {
+      const t = String(env.type || '').toLowerCase();
+      if (t.includes('edit')) {
+        const m = env.data;
+        // backend sends full serialized message
+        setMessages((prev) => {
+          const convId = String(m.conversationId || selectedContactId || '');
+          const conv = prev[convId] || [];
+          return {
+            ...prev,
+            [convId]: conv.map((msg) => (String(msg.id) === String(m.messageId) ? { ...msg, text: m.content, editedAt: m.editedAt } : msg)),
+          };
+        });
+      } else if (t.includes('reaction')) {
+        const d = env.data || {};
+        const mid = String(d.messageId || d.message_id || '');
+        const counts = d.counts || {};
+        // counts expected as { emoji: count }
+        const reactions = Object.keys(counts).map((k) => ({ emoji: k, count: counts[k] }));
+        setMessages((prev) => {
+          const newPrev = { ...prev };
+          for (const cid of Object.keys(newPrev)) {
+            newPrev[cid] = newPrev[cid].map((m) => (String(m.id) === mid ? { ...m, reactions } : m));
+          }
+          return newPrev;
+        });
+      }
+    });
+
+    return () => unsub();
+  }, [selectedContactId]);
+
+
   const handleSendMessage = (text: string) => {
     if (!selectedContactId) return;
 
@@ -372,6 +417,36 @@ export function ChatApp({ onLogout }: { onLogout: () => void }) {
         ),
       }));
     }, 3000);
+  };
+
+  const handleEditMessage = (messageId: string, newText: string) => {
+    if (!selectedContactId) return;
+    // optimistic update
+    setMessages((prev) => ({
+      ...prev,
+      [selectedContactId]: prev[selectedContactId].map((m) => (m.id === messageId ? { ...m, text: newText, editedAt: new Date().toISOString() } : m)),
+    }));
+
+    ws.send({ type: 'message_edit', data: { messageId, content: newText } });
+  };
+
+  const handleReact = (messageId: string, emoji: string) => {
+    if (!selectedContactId) return;
+    // optimistic toggle
+    setMessages((prev) => {
+      const conv = prev[selectedContactId] || [];
+      const newConv = conv.map((m) => {
+        if (m.id !== messageId) return m;
+        const existing = (m.reactions || []).find((r) => r.emoji === emoji);
+        if (existing) {
+          return { ...m, reactions: (m.reactions || []).filter((r) => r.emoji !== emoji) };
+        }
+        return { ...m, reactions: [...(m.reactions || []), { emoji, count: 1, reactedByMe: true }] };
+      });
+      return { ...prev, [selectedContactId]: newConv };
+    });
+
+    ws.send({ type: 'message_reaction', data: { messageId, emoji, action: 'add' } });
   };
 
   const handleAcceptRequest = (id: string) => {
@@ -456,6 +531,8 @@ export function ChatApp({ onLogout }: { onLogout: () => void }) {
         contact={selectedContact}
         messages={currentMessages}
         onSendMessage={handleSendMessage}
+        onEditMessage={handleEditMessage}
+        onReact={handleReact}
       />
       <FriendRequestsModal
         isOpen={showFriendRequests}

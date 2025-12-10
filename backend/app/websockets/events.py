@@ -7,13 +7,19 @@ from fastapi import WebSocket
 
 from app.db.session import AsyncSessionLocal
 from app.repositories.conversation_repository import ConversationRepository
+from app.repositories.message_reaction_repository import MessageReactionRepository
 from app.repositories.message_repository import MessageRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.typing.typing_status import TypingStatus
 from app.schemas.websocket.envelope import EventEnvelope
 from app.schemas.websocket.error_events import ErrorPayload
 from app.schemas.websocket.event_types import WebSocketEventType
-from app.schemas.websocket.message_events import MessageAckPayload, MessageSendPayload
+from app.schemas.websocket.message_events import (
+    MessageAckPayload,
+    MessageEditPayload,
+    MessageReactionPayload,
+    MessageSendPayload,
+)
 from app.services.message_service import MessageService
 from app.websockets.connection_manager import connection_manager
 
@@ -30,6 +36,8 @@ def serialize_message(msg) -> Dict[str, Any]:
         "createdAt": msg.created_at.isoformat(),
         "delivered": msg.delivered,
         "read": msg.read,
+        "editedAt": msg.edited_at.isoformat() if getattr(msg, "edited_at", None) else None,
+        "editedById": str(msg.edited_by_id) if getattr(msg, "edited_by_id", None) else None,
     }
 
 
@@ -65,7 +73,8 @@ async def handle_message_send(
         message_repo = MessageRepository(session)
         conv_repo = ConversationRepository(session)
         user_repo = UserRepository(session)
-        message_service = MessageService(message_repo, conv_repo, user_repo)
+        reaction_repo = MessageReactionRepository(session)
+        message_service = MessageService(message_repo, conv_repo, user_repo, reaction_repo)
 
         try:
             msg = await message_service.send_message(
@@ -120,6 +129,152 @@ async def handle_message_send(
                 "type": WebSocketEventType.MESSAGE_ACK.value,
                 "data": ack.model_dump(by_alias=True),
             },
+            default=str,
+        )
+    )
+
+
+async def handle_message_edit(
+    websocket: WebSocket,
+    user_id: UUID,
+    data: Dict[str, Any],
+    correlation_id: Optional[str],
+):
+    try:
+        payload = MessageEditPayload.model_validate(data)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Validation failed for message_edit: %s", exc)
+        await send_error(websocket, "validation_failed", "Invalid message edit payload", correlation_id)
+        return
+
+    if payload.content is None:
+        await send_error(websocket, "validation_failed", "Content required", correlation_id)
+        return
+
+    if len(payload.content) > MAX_MESSAGE_LENGTH:
+        await send_error(websocket, "validation_failed", "Message too long", correlation_id)
+        return
+
+    async with AsyncSessionLocal() as session, session.begin():
+        message_repo = MessageRepository(session)
+        conv_repo = ConversationRepository(session)
+        user_repo = UserRepository(session)
+        reaction_repo = MessageReactionRepository(session)
+        message_service = MessageService(message_repo, conv_repo, user_repo, reaction_repo)
+
+        try:
+            updated_msg, edit_record = await message_service.edit_message(
+                payload.message_id, user_id, payload.content
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Failed to edit message: %s", exc)
+            await send_error(websocket, "db_error", "Failed to edit message", correlation_id)
+            return
+
+    # Broadcast edit to other members
+    delivered = False
+    recipients: Set[UUID] = set()
+    try:
+        async with AsyncSessionLocal() as session:
+            conv_repo = ConversationRepository(session)
+            members = await conv_repo.get_conversation_members(updated_msg.conversation_id)
+            recipients = {m.user_id for m in members if m.user_id != user_id}
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to load conversation members for edit delivery: %s", exc)
+
+    message_dict = serialize_message(updated_msg)
+    edit_envelope = {"type": WebSocketEventType.MESSAGE_EDIT.value, "data": message_dict}
+
+    if recipients:
+        for rid in recipients:
+            delivered = await connection_manager.send_to_user(rid, edit_envelope) or delivered
+
+    # Ack back to editor
+    ack = MessageAckPayload(
+        correlationId=correlation_id,
+        messageId=updated_msg.id,
+        status="ok",
+        delivered=delivered,
+        message=message_dict,
+    )
+
+    await websocket.send_text(
+        json.dumps(
+            {"type": WebSocketEventType.MESSAGE_ACK.value, "data": ack.model_dump(by_alias=True)},
+            default=str,
+        )
+    )
+
+
+async def handle_message_reaction(
+    websocket: WebSocket,
+    user_id: UUID,
+    data: Dict[str, Any],
+    correlation_id: Optional[str],
+):
+    try:
+        payload = MessageReactionPayload.model_validate(data)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Validation failed for message_reaction: %s", exc)
+        await send_error(websocket, "validation_failed", "Invalid reaction payload", correlation_id)
+        return
+
+    if not payload.emoji or not payload.emoji.strip():
+        await send_error(websocket, "validation_failed", "Emoji required", correlation_id)
+        return
+
+    async with AsyncSessionLocal() as session, session.begin():
+        message_repo = MessageRepository(session)
+        conv_repo = ConversationRepository(session)
+        user_repo = UserRepository(session)
+        reaction_repo = MessageReactionRepository(session)
+        message_service = MessageService(message_repo, conv_repo, user_repo, reaction_repo)
+
+        try:
+            if payload.action == "add":
+                _, counts = await message_service.add_reaction(payload.message_id, user_id, payload.emoji)
+            else:
+                _, counts = await message_service.remove_reaction(payload.message_id, user_id, payload.emoji)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Failed to process reaction: %s", exc)
+            await send_error(websocket, "db_error", "Failed to process reaction", correlation_id)
+            return
+
+    # Broadcast updated counts to conversation members
+    delivered = False
+    recipients: Set[UUID] = set()
+    try:
+        async with AsyncSessionLocal() as session:
+            m_repo = MessageRepository(session)
+            msg = await m_repo.get_by_id(payload.message_id)
+            if msg:
+                conv_repo = ConversationRepository(session)
+                members = await conv_repo.get_conversation_members(msg.conversation_id)
+                recipients = {m.user_id for m in members if m.user_id != user_id}
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to load conversation members for reaction delivery: %s", exc)
+
+    reaction_envelope = {
+        "type": WebSocketEventType.MESSAGE_REACTION.value,
+        "data": {"messageId": str(payload.message_id), "counts": counts},
+    }
+
+    if recipients:
+        for rid in recipients:
+            delivered = await connection_manager.send_to_user(rid, reaction_envelope) or delivered
+
+    # Ack back to sender (include counts)
+    ack = MessageAckPayload(
+        correlationId=correlation_id,
+        messageId=payload.message_id,
+        status="ok",
+        delivered=delivered,
+        message={"messageId": str(payload.message_id), "counts": counts},
+    )
+
+    await websocket.send_text(
+        json.dumps(
+            {"type": WebSocketEventType.MESSAGE_ACK.value, "data": ack.model_dump(by_alias=True)},
             default=str,
         )
     )
@@ -183,7 +338,8 @@ async def handle_mark_read(
         msg_repo = MessageRepository(session)
         conv_repo = ConversationRepository(session)
         user_repo = UserRepository(session)
-        msg_service = MessageService(msg_repo, conv_repo, user_repo)
+        reaction_repo = MessageReactionRepository(session)
+        msg_service = MessageService(msg_repo, conv_repo, user_repo, reaction_repo)
 
         try:
             updated = await msg_service.mark_read(
@@ -249,6 +405,10 @@ async def dispatch_event(
 
     if etype == WebSocketEventType.MESSAGE_SEND.value:
         await handle_message_send(websocket, user_id, data, correlation_id)
+    elif etype == WebSocketEventType.MESSAGE_EDIT.value:
+        await handle_message_edit(websocket, user_id, data, correlation_id)
+    elif etype == WebSocketEventType.MESSAGE_REACTION.value:
+        await handle_message_reaction(websocket, user_id, data, correlation_id)
     elif etype == WebSocketEventType.TYPING.value:
         await handle_typing(websocket, user_id, data, correlation_id)
     elif etype == WebSocketEventType.MESSAGE_READ.value:

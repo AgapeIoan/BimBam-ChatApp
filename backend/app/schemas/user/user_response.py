@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserResponse(BaseModel):
@@ -6,6 +6,4 @@ class UserResponse(BaseModel):
     username: str = Field(..., alias="username")
     avatar_url: str | None = Field(None, alias="avatarUrl")
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)

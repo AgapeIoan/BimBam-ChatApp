@@ -1,4 +1,3 @@
-
 from authlib.integrations.starlette_client import OAuth
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse

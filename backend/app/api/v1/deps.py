@@ -9,11 +9,13 @@ from app.db.session import get_async_session
 from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.friend_request_repository import FriendRequestRepository
 from app.repositories.friendship_repository import FriendshipRepository
+from app.repositories.message_reaction_repository import MessageReactionRepository
 from app.repositories.message_repository import MessageRepository
 from app.repositories.user_repository import UserRepository
 from app.services.conversation_service import ConversationService
 from app.services.friend_request_service import FriendRequestService
 from app.services.friendship_service import FriendshipService
+from app.services.message_service import MessageService
 from app.services.user_service import UserService
 from app.utils.jwt_utils import decode_access_token
 
@@ -53,6 +55,13 @@ async def get_current_user(
 def get_user_service(session: AsyncSession = Depends(get_async_session)) -> UserService:
     repo = UserRepository(session)
     return UserService(repo)
+
+def get_message_service(session: AsyncSession = Depends(get_async_session)) -> MessageService:
+    repo = MessageRepository(session)
+    conversation_repo = ConversationRepository(session)
+    user_repo = UserRepository(session)
+    reaction_repo = MessageReactionRepository(session)
+    return MessageService(repo, conversation_repo, user_repo, reaction_repo)
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
