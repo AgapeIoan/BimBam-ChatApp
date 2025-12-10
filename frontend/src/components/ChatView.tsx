@@ -1,13 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useRef, useEffect } from 'react';
 import { Send, Check, CheckCheck, XCircle } from 'lucide-react';
 import type { Message } from '../types/conversation/chat';
 import type { FriendListItem } from '../types/friend/friendListItem';
+import { MessageItem } from './MessageItem';
 
 interface ChatViewProps {
   contact?: FriendListItem
   messages: Message[];
   onSendMessage: (text: string) => void;
   onEditGroup?: (conversationId: string) => void;
+  onEditMessage?: (messageId: string, newText: string) => void;
+  onReact?: (messageId: string, emoji: string) => void;
 }
 
 export function ChatView({ contact, messages, onSendMessage, onEditMessage, onReact }: ChatViewProps) {

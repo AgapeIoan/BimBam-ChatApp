@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useState, useEffect } from 'react';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatView } from './ChatView';
 import { FriendRequestsModal } from './FriendRequestsModal';
@@ -9,7 +8,8 @@ import type { UserAccountDetails } from '../types/user/userAccountDetails';
 import type { Message} from '../types/conversation/chat';
 import type { ConversationPreview } from '../types/conversation/conversationPreview';
 import type { FriendRequestApi } from '../types/friendRequests/friendRequestApi';
-import type { UserSearchResult } from '../types/users/userSearchResult';
+import type { UserSearchResult } from '../types/user/userSearchResult';
+import ws from '../api/ws';
 import { loadConversationPreviews } from '../services/conversationService';
 import { getMe, searchUsers } from '../services/userService';
 import {
@@ -100,6 +100,7 @@ export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
 
   useEffect(() => {
     ws.connect();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const unsub = ws.subscribe((env: any) => {
       const t = String(env.type || '').toLowerCase();
       if (t.includes('edit')) {
@@ -267,8 +268,8 @@ export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
           username: member.friend.username,
           email: member.friend.email,
           avatarUrl: member.friend.avatarUrl ?? "",
-          lastseenAt: new Date(),
-          provider: "email",
+          lastSeen: member.friend.lastSeen,
+          provider: member.friend.provider,
           id: member.friend.id,
         })),
         unreadCount: 0,
