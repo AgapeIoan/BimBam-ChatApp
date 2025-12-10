@@ -1,17 +1,21 @@
+from datetime import datetime
 from typing import List, Optional
+from uuid import UUID
+
 from fastapi import HTTPException
 
-from repositories.conversation_repository import ConversationRepository
-from repositories.user_repository import UserRepository
-from repositories.message_repository import MessageRepository
-from schemas.conversation.conversation_read import ConversationRead
-from schemas.message.message_read import MessageRead
-from models.conversation import Conversation
-from models.message import Message
+from app.models.conversation import Conversation
+from app.models.message import Message
+from app.repositories.conversation_repository import ConversationRepository
+from app.repositories.message_repository import MessageRepository
+from app.repositories.user_repository import UserRepository
+from app.schemas.conversation.conversation_preview import ConversationPreview
+from app.schemas.conversation.conversation_read import ConversationRead
+from app.schemas.message.message_read import MessageRead
+from app.schemas.user.user_read import UserRead
 
 
 class ConversationService:
-
     def __init__(
         self,
         conversation_repo: ConversationRepository,
@@ -22,7 +26,6 @@ class ConversationService:
         self.user_repo = user_repo
         self.message_repo = message_repo
 
-
     async def get_or_create_dm(self, user_a_id, user_b_id) -> Conversation:
         if user_a_id == user_b_id:
             raise HTTPException(400, "Cannot create DM with yourself")
@@ -32,7 +35,6 @@ class ConversationService:
             raise HTTPException(404, "User not found")
 
         return await self.conversation_repo.get_or_create_dm(user_a_id, user_b_id)
-
 
     async def create_group(self, creator_id: str, name: str, member_ids: List[str]) -> Conversation:
         if not name:
@@ -55,7 +57,7 @@ class ConversationService:
         conv = await self.conversation_repo.get_by_id(conversation_id)
         if not conv:
             raise HTTPException(404, "Conversation not found")
-        
+
         if not conv.is_group:
             raise HTTPException(400, "Cannot add members to a direct chat")
 
@@ -74,11 +76,51 @@ class ConversationService:
     async def get_user_conversations(self, user_id: str) -> List[Conversation]:
         return await self.conversation_repo.get_user_conversations(user_id)
 
+    async def get_user_conversation_previews(self, user_id: UUID) -> List[ConversationPreview]:
+        conversations = await self.conversation_repo.get_user_conversations(user_id)
+        conv_ids = [c.id for c in conversations]
+        last_messages = await self.message_repo.get_latest_for_conversations(conv_ids)
+
+        previews: list[tuple[datetime, ConversationPreview]] = []
+        for conv in conversations:
+            member_unread = 0
+            for member in conv.members:
+                if member.user_id == user_id:
+                    member_unread = member.unread_count
+                    break
+
+            other_users = [
+                UserRead.model_validate(m.user)
+                for m in conv.members
+                if m.user_id != user_id
+            ]
+
+            last_msg = last_messages.get(conv.id)
+            sort_ts = last_msg["created_at"] if last_msg else conv.created_at
+
+            previews.append(
+                (
+                    sort_ts,
+                    ConversationPreview(
+                        id=conv.id,
+                        is_group=conv.is_group,
+                        name=conv.name,
+                        last_message=last_msg["content"] if last_msg else None,
+                        last_message_at=last_msg["created_at"] if last_msg else None,
+                        other_users=other_users,
+                        unread_count=member_unread,
+                    ),
+                )
+            )
+
+        previews.sort(key=lambda item: item[0], reverse=True)
+        return [p for _, p in previews]
+
     async def send_message(self, conversation_id, sender_id, content: str) -> Message:
         conv = await self.conversation_repo.get_by_id(conversation_id)
         if not conv:
             raise HTTPException(404, "Conversation not found")
-        
+
         if not await self.conversation_repo.is_member(conversation_id, sender_id):
             raise HTTPException(403, "You are not part of this conversation")
 
@@ -103,10 +145,9 @@ class ConversationService:
         before_id: Optional[str] = None,
         mark_read: bool = True,
     ) -> List[Message]:
-
         if not await self.conversation_repo.get_by_id(conversation_id):
             raise HTTPException(404, "Conversation not found")
-        
+
         if not await self.conversation_repo.is_member(conversation_id, user_id):
             raise HTTPException(403, "You are not part of this conversation")
 
@@ -120,9 +161,7 @@ class ConversationService:
         if mark_read and messages:
             last_msg = messages[-1]
             await self.conversation_repo.update_last_read(
-                conversation_id=conversation_id,
-                user_id=user_id,
-                message_id=last_msg.id
+                conversation_id=conversation_id, user_id=user_id, message_id=last_msg.id
             )
 
         return messages
@@ -134,7 +173,6 @@ class ConversationService:
         limit: int = 50,
         before_id: Optional[str] = None,
     ) -> List[MessageRead]:
-
         msgs = await self.get_messages(
             conversation_id=conversation_id,
             user_id=user_id,
@@ -149,7 +187,7 @@ class ConversationService:
 
         if not conv:
             raise HTTPException(404, "Conversation not found")
-        
+
         if not await self.conversation_repo.is_member(conversation_id, user_id):
             raise HTTPException(403, "You are not part of this conversation")
 

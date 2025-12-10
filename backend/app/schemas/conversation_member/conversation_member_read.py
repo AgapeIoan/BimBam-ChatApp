@@ -1,9 +1,10 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
 from uuid import UUID
 
-from schemas.user.user_read import UserRead
+from pydantic import BaseModel
+
+from app.schemas.user.user_read import UserRead
 
 
 class ConversationMemberRead(BaseModel):

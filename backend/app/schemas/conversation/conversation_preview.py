@@ -1,9 +1,10 @@
 from datetime import datetime
-from typing import Optional, List
-from pydantic import BaseModel
+from typing import List, Optional
 from uuid import UUID
 
-from schemas.user.user_read import UserRead
+from pydantic import BaseModel, Field
+
+from app.schemas.user.user_read import UserRead
 
 
 class ConversationPreview(BaseModel):
@@ -16,7 +17,7 @@ class ConversationPreview(BaseModel):
     last_message_at: Optional[datetime]
 
     # For direct chats (DM)
-    other_users: List[UserRead] = []
+    other_users: List[UserRead] = Field(default_factory=list)
 
     # For unread badge
     unread_count: int
