@@ -5,10 +5,11 @@ import { FriendRequestsModal } from './FriendRequestsModal';
 import { AccountModal } from './AccountModal';
 import { GroupModal } from "./GroupModal";
 import { v4 as uuidv4 } from 'uuid';
-import type { UserAccount } from './AccountModal';
+import type { UserAccountDetails } from '../types/userAccountDetails';
 import type { Message, ConversationUser, ConversationPreview } from '../types/chat';
 import type { FriendRequestApi, UserSearchResult} from '../types/friendRequests';
 import { loadConversationPreviews } from '../services/conversationService';
+import { getMe } from '../services/meService';
 
 type GroupModalMode = "create" | "edit";
 import {
@@ -28,13 +29,13 @@ export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [friendsList, setFriendsList] = useState<ConversationUser[]>([]);
-  const [userAccount, setUserAccount] = useState<UserAccount>({
-    name: 'Alex Morgan',
-    username: 'alexmorgan',
-    email: 'alex.morgan@email.com',
-    password: 'password123',
-    signUpMethod: 'email',
-  });
+  const [userAccount, setUserAccount] = useState<UserAccountDetails>({
+    id: '',
+    email: '',
+    username: '',
+    avatar_url: null,
+  }
+  )
   const [incomingRequests, setIncomingRequests] = useState<FriendRequestApi[]>([]);
   const [sentRequests, setSentRequests] = useState<FriendRequestApi[]>([]);
   const [conversations, setConversations] = useState<ConversationPreview[]>([]);
@@ -67,6 +68,16 @@ export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
       }
     }
     fetchRequests();
+
+    async function fetchUserAccount() {
+      try {
+        const me = await getMe();
+        setUserAccount(me);
+      } catch (e) {
+        console.error('Failed to fetch user account:', e);
+      }
+    }
+    fetchUserAccount();
   }, []);
 
   const selectedContact = friendsList.find((c) => c.id === selectedContactId);
@@ -169,7 +180,7 @@ export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
     });
   };
 
-  const handleSaveAccount = (account: UserAccount) => {
+  const handleSaveAccount = (account: UserAccountDetails) => {
     setUserAccount(account);
     console.log('Account updated:', account);
   };
