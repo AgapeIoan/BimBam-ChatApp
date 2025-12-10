@@ -34,6 +34,9 @@ class Message(Base):
     delivered: Mapped[bool] = mapped_column(Boolean, default=False)
     read: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    edited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=True)
+    edited_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
     conversation = relationship("Conversation", back_populates="messages")
     sender = relationship("User", back_populates="messages_sent", foreign_keys=[sender_id])
 

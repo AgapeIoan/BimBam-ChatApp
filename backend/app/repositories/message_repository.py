@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 
@@ -6,11 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.message import Message
+from app.models.message_edit import MessageEdit
 
 
 class MessageRepository:
     def __init__(self, session: AsyncSession):
-        self.session = session
+        self._session = session
 
     async def create(
         self,
@@ -25,9 +27,9 @@ class MessageRepository:
             content=content,
         )
 
-        self.session.add(msg)
-        await self.session.flush()
-        await self.session.refresh(msg)
+        self._session.add(msg)
+        await self._session.flush()
+        await self._session.refresh(msg)
         return msg
 
     async def get_latest_for_conversations(self, conversation_ids: list[UUID]):
@@ -53,7 +55,7 @@ class MessageRepository:
             .where(Message.conversation_id.in_(conversation_ids))
         ).subquery()
 
-        result = await self.session.execute(
+        result = await self._session.execute(
             select(last_message_subq).where(last_message_subq.c.rn == 1)
         )
 
@@ -88,14 +90,14 @@ class MessageRepository:
             if before_msg:
                 query = query.where(Message.created_at < before_msg.created_at)
 
-        result = await self.session.execute(query)
+        result = await self._session.execute(query)
         messages = list(result.scalars().all())
 
         messages.reverse()
         return messages
 
     async def get_by_id(self, message_id: UUID) -> Optional[Message]:
-        result = await self.session.execute(
+        result = await self._session.execute(
             select(Message).where(Message.id == message_id).options(selectinload(Message.sender))
         )
         return result.scalars().one_or_none()
@@ -122,7 +124,7 @@ class MessageRepository:
             if before_msg:
                 query = query.where(Message.created_at <= before_msg.created_at)
 
-        result = await self.session.execute(query)
+        result = await self._session.execute(query)
         unread_messages = result.scalars().all()
 
         # Mark them as read
@@ -130,7 +132,7 @@ class MessageRepository:
             msg.read = True
 
         if unread_messages:
-            await self.session.flush()
+            await self._session.flush()
 
         return unread_messages
 
@@ -142,5 +144,39 @@ class MessageRepository:
         if not msg:
             return None
         msg.delivered = True
-        await self.session.flush()
+        await self._session.flush()
+        await self._session.refresh(msg)
         return msg
+
+    async def edit_message(self, message_id: UUID, editor_id: UUID, new_content: str):
+        msg = await self.get_by_id(message_id)
+        if not msg:
+            return None, None
+
+        old_content = msg.content
+        msg.content = new_content
+        # record edit metadata on the message itself
+        msg.edited_at = datetime.now(timezone.utc)
+        msg.edited_by_id = editor_id
+
+        edit_record = MessageEdit(
+            message_id=message_id,
+            editor_id=editor_id,
+            old_content=old_content,
+            new_content=new_content,
+        )
+
+        self._session.add(edit_record)
+        await self._session.flush()
+        await self._session.refresh(msg)
+        await self._session.refresh(edit_record)
+
+        return msg, edit_record
+
+    async def delete_message(self, message_id: UUID) -> bool:
+        msg = await self.get_by_id(message_id)
+        if not msg:
+            return False
+        await self._session.delete(msg)
+        await self._session.flush()
+        return True

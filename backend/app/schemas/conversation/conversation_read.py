@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.schemas.conversation_member.conversation_member_read import ConversationMemberRead
 
@@ -15,5 +15,4 @@ class ConversationRead(BaseModel):
 
     members: Optional[List[ConversationMemberRead]] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)

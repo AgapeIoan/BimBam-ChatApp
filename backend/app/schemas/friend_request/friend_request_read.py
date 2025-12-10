@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import FriendRequestStatus
 
@@ -13,6 +13,4 @@ class FriendRequestRead(BaseModel):
     status: FriendRequestStatus = Field(..., alias="status")
     created_at: datetime = Field(..., alias="createdAt")
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)

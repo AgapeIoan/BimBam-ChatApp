@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatView } from './ChatView';
 import { FriendRequestsModal } from './FriendRequestsModal';
@@ -96,6 +97,41 @@ export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
 
   const selectedContact = friendsList.find((c) => c.friend.id === selectedContactId);
   const currentMessages = selectedContactId ? messages[selectedContactId] || [] : [];
+
+  useEffect(() => {
+    ws.connect();
+    const unsub = ws.subscribe((env: any) => {
+      const t = String(env.type || '').toLowerCase();
+      if (t.includes('edit')) {
+        const m = env.data;
+        // backend sends full serialized message
+        setMessages((prev) => {
+          const convId = String(m.conversationId || selectedContactId || '');
+          const conv = prev[convId] || [];
+          return {
+            ...prev,
+            [convId]: conv.map((msg) => (String(msg.id) === String(m.messageId) ? { ...msg, text: m.content, editedAt: m.editedAt } : msg)),
+          };
+        });
+      } else if (t.includes('reaction')) {
+        const d = env.data || {};
+        const mid = String(d.messageId || d.message_id || '');
+        const counts = d.counts || {};
+        // counts expected as { emoji: count }
+        const reactions = Object.keys(counts).map((k) => ({ emoji: k, count: counts[k] }));
+        setMessages((prev) => {
+          const newPrev = { ...prev };
+          for (const cid of Object.keys(newPrev)) {
+            newPrev[cid] = newPrev[cid].map((m) => (String(m.id) === mid ? { ...m, reactions } : m));
+          }
+          return newPrev;
+        });
+      }
+    });
+
+    return () => unsub();
+  }, [selectedContactId]);
+
 
   const handleSendMessage = (text: string) => {
     if (!selectedContactId) return;

@@ -166,8 +166,8 @@ class ConversationRepository:
 
         member.last_read_message_id = message_id
         member.unread_count = 0
-
         await self.session.flush()
+        await self.session.refresh(member)
         return member
 
     async def increment_unread_for_others(self, conversation_id: UUID, sender_id: UUID):
