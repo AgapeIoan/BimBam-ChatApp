@@ -67,14 +67,20 @@ class UserRepository:
         await self._session.refresh(user)
         return user
 
-    async def search_by_email(self, email_query: str) -> list[User]:
+    async def search_by_email(self, email_query: str, user_email: str) -> list[User]:
         result = await self._session.execute(
-            select(User).where(User.email.ilike(f"%{email_query}%"))
+            select(User).where(
+                User.email.ilike(f"%{email_query}%") & (User.email != user_email)
+            )
         )
         return result.scalars().all()
 
-    async def search_by_username(self, username_query: str) -> list[User]:
+    async def search_by_username(
+        self, username_query: str, user_email: str
+    ) -> list[User]:
         result = await self._session.execute(
-            select(User).where(User.username.ilike(f"%{username_query}%"))
+            select(User).where(
+                User.username.ilike(f"%{username_query}%") & (User.email != user_email)
+            )
         )
         return result.scalars().all()

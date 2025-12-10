@@ -20,30 +20,30 @@ async def update_username(
 
 
 @router.get(
-    "/users/search-by-email",
+    "/search-by-email",
     response_model=List[UserResponse],
-    dependencies=[Depends(get_current_user)],
 )
 async def search_by_email(
     query: str = Query(..., min_length=1, alias="q"),
+    current_user: User = Depends(get_current_user),
     user_service: UserService = Depends(get_user_service),
 ):
-    users = await user_service.search_users_by_email(query)
+    users = await user_service.search_users_by_email(query, current_user.email)
     if not users:
         return []
     return users
 
 
 @router.get(
-    "/users/search-by-username",
+    "/search-by-username",
     response_model=List[UserResponse],
-    dependencies=[Depends(get_current_user)],
 )
 async def search_by_username(
     query: str = Query(..., min_length=1, alias="q"),
+    current_user: User = Depends(get_current_user),
     user_service: UserService = Depends(get_user_service),
 ):
-    users = await user_service.search_user_by_username(query)
+    users = await user_service.search_users_by_username(query, current_user.email)
     if not users:
         return []
     return users

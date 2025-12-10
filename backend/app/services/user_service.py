@@ -77,18 +77,23 @@ class UserService:
         updated_user = await self.user_repo.update_username(user, new_username)
         return updated_user.username
 
-    async def search_user_by_email(self, query: str) -> list[UserResponse]:
+    async def search_users_by_email(
+        self, query: str, user_email: str
+    ) -> list[UserResponse]:
         if not query:
             raise ValidationException("Email query cannot be empty")
-        users = await self.user_repo.search_by_email(query)
+
+        users = await self.user_repo.search_by_email(query, user_email)
         if not users:
             return []
         return [self._map_to_user_response(user) for user in users]
 
-    async def search_user_by_username(self, query: str) -> list[UserResponse]:
+    async def search_users_by_username(
+        self, query: str, user_email: str
+    ) -> list[UserResponse]:
         if not query:
             raise ValidationException("Username query cannot be empty")
-        users = await self.user_repo.search_by_username(query)
+        users = await self.user_repo.search_by_username(query, user_email)
         if not users:
             return []
         return [self._map_to_user_response(user) for user in users]
