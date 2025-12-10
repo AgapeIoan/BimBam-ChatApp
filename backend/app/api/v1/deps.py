@@ -14,8 +14,8 @@ from app.repositories.message_repository import MessageRepository
 from app.repositories.user_repository import UserRepository
 from app.services.conversation_service import ConversationService
 from app.services.friend_request_service import FriendRequestService
-from app.services.message_service import MessageService
 from app.services.friendship_service import FriendshipService
+from app.services.message_service import MessageService
 from app.services.user_service import UserService
 from app.utils.jwt_utils import decode_access_token
 
