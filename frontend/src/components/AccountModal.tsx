@@ -1,39 +1,32 @@
-import { useState } from 'react';
-import { X, User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-
-export interface UserAccount {
-  name: string;
-  username: string;
-  email: string;
-  password: string;
-  signUpMethod: 'email' | 'google';
-}
+import { useEffect, useState } from 'react';
+import { X, Mail } from 'lucide-react';
+import type { UserAccountDetails } from '../types/user/userAccountDetails';
 
 interface AccountModalProps {
   isOpen: boolean;
   onClose: () => void;
-  account: UserAccount;
-  onSave: (account: UserAccount) => void;
+  account: UserAccountDetails;
+  onSave: (account: UserAccountDetails) => void;
 }
 
-export function AccountModal({ isOpen, onClose, account, onSave }: AccountModalProps) {
-  const [formData, setFormData] = useState<UserAccount>(account);
+export function AccountModal({ isOpen, onClose, account, onSave }: Readonly<AccountModalProps>) {
+  const [formData, setFormData] = useState<UserAccountDetails>(account);
   const [isEditing, setIsEditing] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+
+  console.log('AccountModal received account:', account);
+
+  useEffect(() => {
+    if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFormData(account);
+    }
+  }, [isOpen, account]);
 
   if (!isOpen) return null;
 
-  const isProviderSignUp = account.signUpMethod !== 'email';
-
   const handleSave = () => {
     setError('');
-
-    // Validation
-    if (!formData.name.trim()) {
-      setError('Name is required');
-      return;
-    }
 
     if (!formData.username.trim()) {
       setError('Username is required');
@@ -42,11 +35,6 @@ export function AccountModal({ isOpen, onClose, account, onSave }: AccountModalP
 
     if (!formData.email.trim()) {
       setError('Email is required');
-      return;
-    }
-
-    if (isProviderSignUp && formData.password && formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
       return;
     }
 
@@ -62,11 +50,22 @@ export function AccountModal({ isOpen, onClose, account, onSave }: AccountModalP
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
         {/* Header */}
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-gray-900">Account Settings</h2>
+          <div className="flex items-center gap-3">
+            {account.avatar_url ? (
+              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-blue-500 bg-white flex items-center justify-center">
+                <img src={account.avatar_url} alt="avatar" className="w-12 h-12 rounded-full object-cover" referrerPolicy="no-referrer" />
+              </div>
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-xl">
+                {account.username ? account.username[0].toUpperCase() : '?'}
+              </div>
+            )}
+            <h2 className="text-gray-900">Account Settings</h2>
+          </div>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -77,18 +76,10 @@ export function AccountModal({ isOpen, onClose, account, onSave }: AccountModalP
 
         {/* Content */}
         <div className="p-6 space-y-4">
-          {/* Sign Up Method Info */}
+          {/* Info */}
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-blue-800 text-sm">
-              {isProviderSignUp ? (
-                <>
-                  You signed up with{' '}
-                  <span className="font-semibold">Google</span>
-                  . Fill in your details below to complete your profile.
-                </>
-              ) : (
-                <>You signed up with email and password.</>
-              )}
+              You signed up with <span className="font-semibold">Google</span>.
             </p>
           </div>
 
@@ -98,25 +89,6 @@ export function AccountModal({ isOpen, onClose, account, onSave }: AccountModalP
               {error}
             </div>
           )}
-
-          {/* Name Field */}
-          <div>
-            <label htmlFor="name" className="block text-gray-700 mb-2">
-              Name
-            </label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                disabled={!isEditing}
-                placeholder="Your name"
-                className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-600"
-              />
-            </div>
-          </div>
 
           {/* Username Field */}
           <div>
@@ -153,38 +125,6 @@ export function AccountModal({ isOpen, onClose, account, onSave }: AccountModalP
                 placeholder="your.email@example.com"
                 className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-600"
               />
-            </div>
-          </div>
-
-          {/* Password Field */}
-          <div>
-            <label htmlFor="password" className="block text-gray-700 mb-2">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                disabled={!isEditing}
-                placeholder={isProviderSignUp ? 'Set a password' : '••••••••'}
-                className="w-full pl-11 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-600"
-              />
-              {isEditing && (
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              )}
             </div>
           </div>
         </div>

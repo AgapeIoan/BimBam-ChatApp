@@ -1,12 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
 import type { Contact, Message } from './ChatApp';
-import MessageItem from './MessageItem';
+import { MessageItem } from './MessageItem';
 
 interface ChatViewProps {
   contact?: Contact;
   messages: Message[];
   onSendMessage: (text: string) => void;
+  onEditGroup?: (conversationId: string) => void;
   onEditMessage?: (messageId: string, newText: string) => void;
   onReact?: (messageId: string, emoji: string) => void;
 }

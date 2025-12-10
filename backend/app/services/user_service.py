@@ -4,12 +4,21 @@ from uuid import UUID
 from app.core.redis_client import set_user_offline, set_user_online
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
+from app.schemas.user.user_response import UserResponse
 from app.utils.errors.validation_exception import ValidationException
 
 
 class UserService:
     def __init__(self, user_repo: UserRepository):
         self.user_repo = user_repo
+
+    def _map_to_user_response(self, user: User):
+        return UserResponse(
+            id=user.id,
+            email=user.email,
+            username=user.username,
+            avatarUrl=user.avatar_url,
+        )
 
     async def get_by_id(self, user_id: UUID):
         return await self.user_repo.get_by_id(user_id)
@@ -66,3 +75,24 @@ class UserService:
         if len(query) < 2:
             raise ValidationException("Search query must be at least 2 characters")
         return await self.user_repo.search_by_query(query, limit=limit, exclude_user_id=exclude_user_id)
+
+    async def search_users_by_email(
+        self, query: str, user_email: str
+    ) -> list[UserResponse]:
+        if not query:
+            raise ValidationException("Email query cannot be empty")
+
+        users = await self.user_repo.search_by_email(query, user_email)
+        if not users:
+            return []
+        return [self._map_to_user_response(user) for user in users]
+
+    async def search_users_by_username(
+        self, query: str, user_email: str
+    ) -> list[UserResponse]:
+        if not query:
+            raise ValidationException("Username query cannot be empty")
+        users = await self.user_repo.search_by_username(query, user_email)
+        if not users:
+            return []
+        return [self._map_to_user_response(user) for user in users]

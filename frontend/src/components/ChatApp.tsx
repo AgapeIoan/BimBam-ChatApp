@@ -3,7 +3,7 @@ import { ChatSidebar } from './ChatSidebar';
 import { ChatView } from './ChatView';
 import { FriendRequestsModal } from './FriendRequestsModal';
 import { AccountModal } from './AccountModal';
-import type { UserAccount } from './AccountModal';
+import type { UserAccountDetails } from '../types/user/userAccountDetails';
 import ws from '../api/ws';
 import type { AuthUser } from '../api/client';
 
@@ -147,12 +147,11 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [friendsList, setFriendsList] = useState<Contact[]>([]);
-  const [userAccount, setUserAccount] = useState<UserAccount>({
-    name: 'Alex Morgan',
-    username: 'alexmorgan',
-    email: 'alex.morgan@email.com',
-    password: 'password123',
-    signUpMethod: 'email',
+  const [userAccount, setUserAccount] = useState<UserAccountDetails>({
+    id: currentUser.id,
+    username: currentUser.username || '',
+    email: currentUser.email,
+    avatar_url: currentUser.avatar_url || null,
   });
   const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
   const [sentRequests, setSentRequests] = useState<SentRequest[]>([]);
@@ -817,7 +816,7 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
     [friendsList, incomingRequests, sentRequests]
   );
 
-  const handleSaveAccount = (account: UserAccount) => {
+  const handleSaveAccount = (account: UserAccountDetails) => {
     setUserAccount(account);
     console.log('Account updated:', account);
   };

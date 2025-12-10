@@ -20,12 +20,16 @@ class UserRepository:
         return result.scalars().one_or_none()
 
     async def get_by_username(self, username: str) -> User | None:
-        result = await self._session.execute(select(User).where(User.username == username))
+        result = await self._session.execute(
+            select(User).where(User.username == username)
+        )
         return result.scalars().one_or_none()
 
     async def get_by_provider_id(self, provider: str, provider_id: str) -> User | None:
         result = await self._session.execute(
-            select(User).where(User.provider == provider).where(User.provider_id == provider_id)
+            select(User)
+            .where(User.provider == provider)
+            .where(User.provider_id == provider_id)
         )
 
         return result.scalars().one_or_none()
@@ -52,7 +56,12 @@ class UserRepository:
         return list(result.scalars().all())
 
     async def create(
-        self, provider: str, provider_id: str, email: str, username: str, avatar_url: str | None
+        self,
+        provider: str,
+        provider_id: str,
+        email: str,
+        username: str,
+        avatar_url: str | None,
     ) -> User:
         user = User(
             provider=provider,
@@ -79,3 +88,21 @@ class UserRepository:
         await self._session.flush()
         await self._session.refresh(user)
         return user
+
+    async def search_by_email(self, email_query: str, user_email: str) -> list[User]:
+        result = await self._session.execute(
+            select(User).where(
+                User.email.ilike(f"%{email_query}%") & (User.email != user_email)
+            )
+        )
+        return result.scalars().all()
+
+    async def search_by_username(
+        self, username_query: str, user_email: str
+    ) -> list[User]:
+        result = await self._session.execute(
+            select(User).where(
+                User.username.ilike(f"%{username_query}%") & (User.email != user_email)
+            )
+        )
+        return result.scalars().all()

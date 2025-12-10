@@ -1,0 +1,172 @@
+import type { Message } from "../types/conversation/chat";
+import type { ConversationUser } from "../types/conversation/conversationUser";
+import type { UserSearchResult } from "../types/user/userSearchResult";
+
+export const mockContacts: ConversationUser[] = [
+  {
+    id: "1",
+    username: "sarahjohnson",
+    email: "sarah.johnson@email.com",
+    avatarUrl: "https://randomuser.me/api/portraits/women/1.jpg",
+    provider: "debug",
+    lastseenAt: new Date(Date.now() - 120000),
+  },
+  {
+    id: "2",
+    username: "mikechen",
+    email: "mike.chen@email.com",
+    avatarUrl: "https://randomuser.me/api/portraits/men/2.jpg",
+    provider: "debug",
+    lastseenAt: new Date(Date.now() - 3600000),
+  },
+  {
+    id: "3",
+    username: "emmawilson",
+    email: "emma.wilson@email.com",
+    avatarUrl: "https://randomuser.me/api/portraits/women/3.jpg",
+    provider: "debug",
+    lastseenAt: new Date(Date.now() - 10800000),
+  },
+  {
+    id: "4",
+    username: "alexturner",
+    email: "alex.turner@email.com",
+    avatarUrl: "https://randomuser.me/api/portraits/men/4.jpg",
+    provider: "debug",
+    lastseenAt: new Date(Date.now() - 86400000),
+  },
+  {
+    id: "5",
+    username: "lisapark",
+    email: "lisa.park@email.com",
+    avatarUrl: "https://randomuser.me/api/portraits/women/5.jpg",
+    provider: "debug",
+    lastseenAt: new Date(Date.now() - 86400000),
+  },
+  {
+    id: "6",
+    username: "davidmartinez",
+    email: "david.martinez@email.com",
+    avatarUrl: "https://randomuser.me/api/portraits/men/6.jpg",
+    provider: "debug",
+    lastseenAt: new Date(Date.now() - 172800000),
+  },
+];
+
+export const mockConversations: Record<string, Message[]> = {
+  '1': [
+    {
+      id: '1',
+      text: 'Hey! How are you doing?',
+      sender: 'them',
+      timestamp: new Date(Date.now() - 3600000),
+    },
+    {
+      id: '2',
+      text: "I'm doing great, thanks! How about you?",
+      sender: 'me',
+      timestamp: new Date(Date.now() - 3500000),
+      status: 'read',
+    },
+    {
+      id: '3',
+      text: 'Pretty good! Are we still on for the meeting tomorrow?',
+      sender: 'them',
+      timestamp: new Date(Date.now() - 3400000),
+    },
+    {
+      id: '4',
+      text: 'Yes absolutely! 2pm works for me.',
+      sender: 'me',
+      timestamp: new Date(Date.now() - 3300000),
+      status: 'read',
+    },
+    {
+      id: '5',
+      text: 'See you tomorrow!',
+      sender: 'them',
+      timestamp: new Date(Date.now() - 120000),
+    },
+  ],
+  '2': [
+    {
+      id: '1',
+      text: 'Could you help me with the project?',
+      sender: 'them',
+      timestamp: new Date(Date.now() - 7200000),
+    },
+    {
+      id: '2',
+      text: 'Sure! What do you need help with?',
+      sender: 'me',
+      timestamp: new Date(Date.now() - 7100000),
+      status: 'read',
+    },
+    {
+      id: '3',
+      text: 'Thanks for the help',
+      sender: 'them',
+      timestamp: new Date(Date.now() - 3600000),
+    },
+  ],
+  '3': [
+    {
+      id: '1',
+      text: 'Did you get my email?',
+      sender: 'them',
+      timestamp: new Date(Date.now() - 10800000),
+    },
+  ],
+  '4': [
+    {
+      id: '1',
+      text: 'Want to grab lunch next week?',
+      sender: 'them',
+      timestamp: new Date(Date.now() - 86400000),
+    },
+    {
+      id: '2',
+      text: 'Perfect, sounds good',
+      sender: 'them',
+      timestamp: new Date(Date.now() - 86000000),
+    },
+  ],
+  '5': [
+    {
+      id: '1',
+      text: 'Can you review the document?',
+      sender: 'them',
+      timestamp: new Date(Date.now() - 86400000),
+    },
+    {
+      id: '2',
+      text: 'Let me check and get back',
+      sender: 'them',
+      timestamp: new Date(Date.now() - 85000000),
+    },
+  ],
+  '6': [
+    {
+      id: '1',
+      text: 'Have a great weekend!',
+      sender: 'them',
+      timestamp: new Date(Date.now() - 172800000),
+    },
+  ],
+};
+
+export const mockUsers: UserSearchResult[] = [
+  {
+    username: 'tomanderson',
+    email: 'tom.anderson@email.com',
+    avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg',
+    isFriend: false,
+    hasPendingRequest: false,
+  },
+  {
+    username: 'rachelgreen',
+    email: 'rachel.green@email.com',
+    isFriend: false,
+    hasPendingRequest: true,
+  },
+];
