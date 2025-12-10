@@ -4,7 +4,11 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
+
+try:
+    from starlette.middleware.sessions import SessionMiddleware
+except Exception:  # pragma: no cover - optional dependency in some test environments
+    SessionMiddleware = None
 
 from app.api.v1 import ws
 from app.api.v1.error_handler import register_error_handlers
