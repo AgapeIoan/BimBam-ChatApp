@@ -2,9 +2,10 @@
 from datetime import datetime
 from uuid import UUID
 
+from pydantic import BaseModel, Field
+
 from app.models.enums import FriendRequestStatus
 from app.schemas.user.user_response import UserResponse
-from pydantic import BaseModel, Field
 
 
 class FriendRequestResponse(BaseModel):

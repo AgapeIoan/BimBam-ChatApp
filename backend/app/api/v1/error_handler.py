@@ -1,5 +1,8 @@
 import traceback
 
+from fastapi import Request, status
+from fastapi.responses import JSONResponse
+
 from app.utils.errors.base_app_exception import BaseAppException
 from app.utils.errors.database_exception import DatabaseException
 from app.utils.errors.forbidden_exception import ForbiddenException
@@ -7,8 +10,6 @@ from app.utils.errors.resource_not_found import ResourceNotFoundException
 from app.utils.errors.unauthorized_exception import UnauthorizedException
 from app.utils.errors.user_not_found_exception import UserNotFoundException
 from app.utils.errors.validation_exception import ValidationException
-from fastapi import Request, status
-from fastapi.responses import JSONResponse
 
 
 def register_error_handlers(app):
