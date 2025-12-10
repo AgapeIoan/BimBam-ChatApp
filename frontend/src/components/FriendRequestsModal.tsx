@@ -38,7 +38,7 @@ interface FriendRequestsModalProps {
   onDeclineRequest: (id: string) => void;
   onCancelRequest: (id: string) => void;
   onSendRequest: (userId: string) => void;
-  onSearchUsers: (query: string) => UserSearchResult[];
+  onSearchUsers: (query: string) => Promise<UserSearchResult[]> | UserSearchResult[];
 }
 
 export function FriendRequestsModal({
@@ -65,18 +65,18 @@ export function FriendRequestsModal({
 
   if (!isOpen) return null;
 
-  const handleSearchChange = (value: string) => {
+  const handleSearchChange = async (value: string) => {
     setSearchValue(value);
     if (value.trim()) {
-      const results = onSearchUsers(value.trim());
+      const results = await onSearchUsers(value.trim());
       setSearchResults(results);
     } else {
       setSearchResults([]);
     }
   };
 
-  const handleSendRequest = (userId: string) => {
-    onSendRequest(userId);
+  const handleSendRequest = (userEmail: string) => {
+    onSendRequest(userEmail);
     setSearchValue("");
     setSearchResults([]);
   };
@@ -249,7 +249,7 @@ export function FriendRequestsModal({
                         ) : (
                           <button
                             onClick={() =>
-                              handleSendRequest(user.id)
+                              handleSendRequest(user.email)
                             }
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                           >

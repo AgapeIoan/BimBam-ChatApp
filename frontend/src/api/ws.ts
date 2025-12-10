@@ -10,13 +10,29 @@ class WsClient {
   private openPromise: Promise<void> | null = null;
 
   constructor(url?: string) {
-    // default to same host and /ws endpoint; override by passing url
+    // Prefer explicit env override, then API host, then same host
     if (url) {
       this.url = url;
-    } else {
-      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-      this.url = `${protocol}://${window.location.host}/ws`;
+      return;
     }
+    const envWs = import.meta.env.VITE_WS_URL as string | undefined;
+    if (envWs) {
+      this.url = envWs;
+      return;
+    }
+    const apiBase = import.meta.env.VITE_API_URL as string | undefined;
+    if (apiBase) {
+      try {
+        const api = new URL(apiBase);
+        const protocol = api.protocol === "https:" ? "wss" : "ws";
+        this.url = `${protocol}://${api.host}/ws`;
+        return;
+      } catch {
+        // fallback below
+      }
+    }
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    this.url = `${protocol}://${window.location.host}/ws`;
   }
 
   /**
@@ -45,6 +61,8 @@ class WsClient {
         this.ws = new WebSocket(url);
 
         this.ws.onopen = () => {
+          // eslint-disable-next-line no-console
+          console.log("ws: connected");
           this.reconnectAttempt = 0;
           resolve();
         };
@@ -52,6 +70,8 @@ class WsClient {
         this.ws.onmessage = (ev) => {
           try {
             const env = JSON.parse(ev.data);
+            // eslint-disable-next-line no-console
+            console.log("ws: message received", env);
             // notify subscribers (defensive copy)
             for (const cb of Array.from(this.subscribers)) {
               try {
@@ -69,6 +89,8 @@ class WsClient {
         };
 
         this.ws.onclose = () => {
+          // eslint-disable-next-line no-console
+          console.log("ws: closed");
           this.ws = null;
           if (this.shouldReconnect) {
             this.scheduleReconnect();
@@ -157,6 +179,8 @@ class WsClient {
     }
 
     try {
+      // eslint-disable-next-line no-console
+      console.log("ws: sending", message);
       this.ws.send(JSON.stringify(message));
       return true;
     } catch (err) {

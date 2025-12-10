@@ -1,7 +1,10 @@
+from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserResponse(BaseModel):
+    id: UUID = Field(..., alias="id")
     email: EmailStr = Field(..., alias="email")
     username: str = Field(..., alias="username")
     avatar_url: str | None = Field(None, alias="avatarUrl")

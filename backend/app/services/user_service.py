@@ -60,3 +60,9 @@ class UserService:
         
         updated_user = await self.user_repo.update_username(user, new_username)
         return updated_user.username
+
+    async def search_users(self, query: str, *, exclude_user_id: UUID | None = None, limit: int = 20):
+        query = query.strip()
+        if len(query) < 2:
+            raise ValidationException("Search query must be at least 2 characters")
+        return await self.user_repo.search_by_query(query, limit=limit, exclude_user_id=exclude_user_id)

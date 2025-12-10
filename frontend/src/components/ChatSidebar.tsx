@@ -1,6 +1,6 @@
 import { Search, MessageCircle, MoreVertical, LogOut, UserPlus, UserCircle } from 'lucide-react';
 import type { Contact } from './ChatApp';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 interface ChatSidebarProps {
   contacts: Contact[];
@@ -26,6 +26,20 @@ export function ChatSidebar({
   onOpenAccount
 }: ChatSidebarProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return contacts.filter(c => c.isFriend);
+    return contacts.filter((c) => {
+      if (!c.isFriend) return false;
+      return (
+        c.name.toLowerCase().includes(q) ||
+        (c.username && c.username.toLowerCase().includes(q)) ||
+        (c.email && c.email.toLowerCase().includes(q))
+      );
+    });
+  }, [contacts, search]);
 
   return (
     <div className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-80'}`}>
@@ -114,6 +128,8 @@ export function ChatSidebar({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Search conversations..."
               className="w-full pl-10 pr-4 py-2 bg-gray-100 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -123,7 +139,7 @@ export function ChatSidebar({
 
       {/* Contacts List */}
       <div className="flex-1 overflow-y-auto">
-        {contacts.filter(c => c.isFriend).map((contact) => (
+        {filtered.map((contact) => (
           <button
             key={contact.id}
             onClick={() => onSelectContact(contact.id)}
