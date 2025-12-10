@@ -21,7 +21,12 @@ class UserService:
         return await self.user_repo.get_by_username(username)
 
     async def login_or_register(
-        self, provider: str, provider_id: str, email: str, username: str, avatar_url: str | None
+        self,
+        provider: str,
+        provider_id: str,
+        email: str,
+        username: str,
+        avatar_url: str | None,
     ):
         user = await self.user_repo.get_by_provider_id(provider, provider_id)
         if not user:
@@ -55,4 +60,3 @@ class UserService:
         
         updated_user = await self.user_repo.update_username(user, new_username)
         return updated_user.username
-        

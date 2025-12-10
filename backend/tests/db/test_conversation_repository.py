@@ -1,5 +1,4 @@
 import pytest
-
 from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.user_repository import UserRepository
 

@@ -1,12 +1,11 @@
 from typing import List, Optional
 from uuid import UUID
 
+from app.models.conversation import Conversation
+from app.models.conversation_member import ConversationMember
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-
-from app.models.conversation import Conversation
-from app.models.conversation_member import ConversationMember
 
 
 class ConversationRepository:
@@ -142,10 +141,12 @@ class ConversationRepository:
             select(Conversation)
             .join(ConversationMember)
             .where(ConversationMember.user_id == user_id)
-            .options(selectinload(Conversation.members))
+            .options(
+                selectinload(Conversation.members).selectinload(ConversationMember.user)
+            )
             .order_by(Conversation.created_at.desc())
         )
-        return result.scalars().all()
+        return result.unique().scalars().all()
 
     async def update_last_read(self, conversation_id: UUID, user_id: UUID, message_id: UUID):
         """

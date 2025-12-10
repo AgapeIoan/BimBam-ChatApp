@@ -1,12 +1,11 @@
 import uuid
 from datetime import datetime
 
+from app.db.base import Base
+from app.models.enums import FriendRequestStatus
 from sqlalchemy import DateTime, Enum, ForeignKey, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.base import Base
-from app.models.enums import FriendRequestStatus
 
 
 class FriendRequest(Base):

@@ -2,14 +2,13 @@ import logging
 from typing import Optional
 from uuid import UUID
 
+import app.db.session as session_module
 import jwt
+from app.core.config import get_settings
+from app.repositories.user_repository import UserRepository
 from fastapi import WebSocket, status
 from fastapi.exceptions import WebSocketException
 from jwt import InvalidTokenError
-
-from app.core.config import get_settings
-from app.db.session import AsyncSessionLocal
-from app.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -54,7 +53,7 @@ async def websocket_auth(
             code=status.WS_1008_POLICY_VIOLATION, reason="Invalid token subject"
         )
 
-    async with AsyncSessionLocal() as session:
+    async with session_module.AsyncSessionLocal() as session:
         user_repo = UserRepository(session)
         user = await user_repo.get_by_id(user_id)
 

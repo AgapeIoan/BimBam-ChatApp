@@ -1,7 +1,8 @@
 from typing import List
 from uuid import UUID
 
-from app.core.redis_client import get_online_users, is_online, set_user_offline, set_user_online
+from app.core.redis_client import (get_online_users, is_online,
+                                   set_user_offline, set_user_online)
 
 
 class PresenceService:

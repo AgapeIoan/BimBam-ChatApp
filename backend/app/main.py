@@ -4,9 +4,14 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
+
+try:
+    from starlette.middleware.sessions import SessionMiddleware
+except Exception:  # pragma: no cover - optional dependency in some test environments
+    SessionMiddleware = None
 
 from app.api.v1 import ws
+from app.api.v1.error_handler import register_error_handlers
 from app.api.v1.routes_handler import api_router
 from app.core.config import get_settings
 from app.db.init_db import init_db
@@ -37,6 +42,7 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api/v1")
+register_error_handlers(app)
 
 
 @app.get("/")
