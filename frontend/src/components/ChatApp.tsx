@@ -8,7 +8,6 @@ import { v4 as uuidv4 } from 'uuid';
 import type { UserAccount } from './AccountModal';
 import type { Message, ConversationUser, ConversationPreview } from '../types/chat';
 import type { FriendRequestApi, UserSearchResult} from '../types/friendRequests';
-import { mockContacts, mockConversations } from '../mock_data/chat';
 import { loadConversationPreviews } from '../services/conversationService';
 
 type GroupModalMode = "create" | "edit";
@@ -24,11 +23,11 @@ import {
 
 export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Record<string, Message[]>>(mockConversations);
+  const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
-  const [friendsList, setFriendsList] = useState<ConversationUser[]>(mockContacts);
+  const [friendsList, setFriendsList] = useState<ConversationUser[]>([]);
   const [userAccount, setUserAccount] = useState<UserAccount>({
     name: 'Alex Morgan',
     username: 'alexmorgan',
