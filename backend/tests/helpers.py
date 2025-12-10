@@ -2,14 +2,12 @@ from typing import Optional
 
 from fastapi.routing import APIRoute
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core import redis_client
-from app.main import app
 
+from app.core import redis_client
 from app.db import session as session_module
 from app.main import app
-
-from app.repositories.friendship_repository import FriendshipRepository
 from app.models.user import User
+from app.repositories.friendship_repository import FriendshipRepository
 
 try:
     import fakeredis.aioredis as _fakeredis_aioredis

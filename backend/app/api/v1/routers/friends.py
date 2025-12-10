@@ -3,7 +3,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.api.v1.deps import get_current_user, get_friendship_service, get_conversation_service, get_async_session
+from app.api.v1.deps import (
+    get_async_session,
+    get_conversation_service,
+    get_current_user,
+    get_friendship_service,
+)
 from app.models.user import User
 from app.schemas.conversation.conversation_read import ConversationRead
 from app.schemas.friendship.friendship import FriendListItem
