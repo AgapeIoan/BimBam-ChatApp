@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Check, CheckCheck, XCircle } from 'lucide-react';
-import type { Contact, Message } from '../types/chat';
+import type { Contact, Message } from '../types/conversation/chat';
 
 interface ChatViewProps {
   contact?: Contact;

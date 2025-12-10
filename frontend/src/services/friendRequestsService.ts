@@ -1,69 +1,49 @@
+import type {
+  FriendRequestApi,
+} from "../types/friendRequests/friendRequestApi";
+import { apiClient } from "./apiClient";
 
+const FRIEND_REQUESTS_BASE = "/api/v1/friend-requests";
 
-import type { FriendRequestApi, UserSearchResult } from "../types/friendRequests";
-import { mockUsers } from "../mock_data/mockUsers";
-
-const API_BASE = "http://localhost:8000/api/v1/friend-requests";
-
-export async function sendFriendRequest(toEmail: string): Promise<FriendRequestApi> {
-  const res = await fetch(API_BASE, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ toEmail: toEmail }),
-    credentials: 'include',
+export async function sendFriendRequest(
+  toEmail: string
+): Promise<FriendRequestApi> {
+  return apiClient.post<FriendRequestApi>(FRIEND_REQUESTS_BASE, {
+    toEmail,
   });
-  if (!res.ok) throw new Error('Failed to send friend request');
-  return await res.json() as FriendRequestApi;
 }
 
-export async function acceptFriendRequest(requestId: string): Promise<FriendRequestApi> {
-  const res = await fetch(`${API_BASE}/${requestId}/accept`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-  });
-  if (!res.ok) throw new Error('Failed to accept friend request');
-  return await res.json() as FriendRequestApi;
+export async function acceptFriendRequest(
+  requestId: string
+): Promise<FriendRequestApi> {
+  return apiClient.post<FriendRequestApi>(
+    `${FRIEND_REQUESTS_BASE}/${requestId}/accept`,
+    null
+  );
 }
 
-export async function declineFriendRequest(requestId: string): Promise<FriendRequestApi> {
-  const res = await fetch(`${API_BASE}/${requestId}/decline`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-  });
-  if (!res.ok) throw new Error('Failed to decline friend request');
-  return await res.json() as FriendRequestApi;
+export async function declineFriendRequest(
+  requestId: string
+): Promise<FriendRequestApi> {
+  return apiClient.post<FriendRequestApi>(
+    `${FRIEND_REQUESTS_BASE}/${requestId}/decline`,
+    null
+  );
 }
 
-export async function cancelFriendRequest(requestId: string): Promise<FriendRequestApi> {
-  const res = await fetch(`${API_BASE}/${requestId}/cancel`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-  });
-  if (!res.ok) throw new Error('Failed to cancel friend request');
-  return await res.json() as FriendRequestApi;
+export async function cancelFriendRequest(
+  requestId: string
+): Promise<FriendRequestApi> {
+  return apiClient.post<FriendRequestApi>(
+    `${FRIEND_REQUESTS_BASE}/${requestId}/cancel`,
+    null
+  );
 }
 
 export async function listIncomingRequests(): Promise<FriendRequestApi[]> {
-  const res = await fetch(`${API_BASE}/incoming`, { credentials: 'include' });
-  if (!res.ok) throw new Error('Failed to fetch incoming requests');
-  return await res.json() as FriendRequestApi[];
+  return apiClient.get<FriendRequestApi[]>(`${FRIEND_REQUESTS_BASE}/incoming`);
 }
 
 export async function listOutgoingRequests(): Promise<FriendRequestApi[]> {
-  const res = await fetch(`${API_BASE}/outgoing`, { credentials: 'include' });
-  if (!res.ok) throw new Error('Failed to fetch outgoing requests');
-  return await res.json() as FriendRequestApi[];
-}
-
-// Example user search (adjust endpoint as needed)
-export function searchUsers(query: string): UserSearchResult[] {
-  // Mock search implementation
-  const lowerQuery = query.toLowerCase();
-  return mockUsers.filter(user =>
-    user.username.toLowerCase().includes(lowerQuery) ||
-    user.email.toLowerCase().includes(lowerQuery)
-  );
+  return apiClient.get<FriendRequestApi[]>(`${FRIEND_REQUESTS_BASE}/outgoing`);
 }

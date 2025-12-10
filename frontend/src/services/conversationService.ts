@@ -1,11 +1,6 @@
-import type { ConversationPreview } from "../types/chat";
-
-
+import { apiClient } from "./apiClient";
+import type { ConversationPreview } from "../types/conversation/conversationPreview";
 
 export async function loadConversationPreviews(): Promise<ConversationPreview[]> {
-  const res = await fetch("/api/v1/conversations/", {
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("Failed to fetch conversations");
-  return await res.json();
+  return apiClient.get<ConversationPreview[]>("/api/v1/conversations/");
 }

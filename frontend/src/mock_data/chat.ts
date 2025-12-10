@@ -1,4 +1,6 @@
-import type { ConversationUser, Message, UserSearchResult } from "../types/chat";
+import type { Message } from "../types/conversation/chat";
+import type { ConversationUser } from "../types/conversation/conversationUser";
+import type { UserSearchResult } from "../types/user/userSearchResult";
 
 export const mockContacts: ConversationUser[] = [
   {
@@ -155,66 +157,16 @@ export const mockConversations: Record<string, Message[]> = {
 
 export const mockUsers: UserSearchResult[] = [
   {
-    id: 'u1',
-    name: 'Tom Anderson',
     username: 'tomanderson',
     email: 'tom.anderson@email.com',
-    avatar: 'TA',
+    avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg',
     isFriend: false,
     hasPendingRequest: false,
   },
   {
-    id: 'u2',
-    name: 'Rachel Green',
     username: 'rachelgreen',
     email: 'rachel.green@email.com',
-    avatar: 'RG',
     isFriend: false,
-    hasPendingRequest: false,
-  },
-  {
-    id: 'u3',
-    name: 'Monica Geller',
-    username: 'monicageller',
-    email: 'monica.geller@email.com',
-    avatar: 'MG',
-    isFriend: false,
-    hasPendingRequest: false,
-  },
-  {
-    id: 'u4',
-    name: 'Ross Geller',
-    username: 'rossgeller',
-    email: 'ross.geller@email.com',
-    avatar: 'RG',
-    isFriend: false,
-    hasPendingRequest: false,
-  },
-  {
-    id: 'u5',
-    name: 'Chandler Bing',
-    username: 'chandlerbing',
-    email: 'chandler.bing@email.com',
-    avatar: 'CB',
-    isFriend: false,
-    hasPendingRequest: false,
-  },
-  {
-    id: 'u6',
-    name: 'Joey Tribbiani',
-    username: 'joeytribbiani',
-    email: 'joey.tribbiani@email.com',
-    avatar: 'JT',
-    isFriend: false,
-    hasPendingRequest: false,
-  },
-  {
-    id: 'u7',
-    name: 'Phoebe Buffay',
-    username: 'phoebebuffay',
-    email: 'phoebe.buffay@email.com',
-    avatar: 'PB',
-    isFriend: false,
-    hasPendingRequest: false,
+    hasPendingRequest: true,
   },
 ];

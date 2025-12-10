@@ -1,5 +1,6 @@
 import { Search, MessageCircle, MoreVertical, LogOut, UserPlus, UserCircle, Users } from 'lucide-react';
-import type { ConversationUser, ConversationPreview } from '../types/chat';
+import type { ConversationUser } from '../types/conversation/conversationUser';
+import type { ConversationPreview } from '../types/conversation/conversationPreview';
 import { useState } from 'react';
 
 interface ChatSidebarProps {

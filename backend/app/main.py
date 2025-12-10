@@ -18,6 +18,7 @@ from app.db.init_db import init_db
 
 settings = get_settings()
 
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     skip = os.getenv("SKIP_DB_INIT_ON_STARTUP", "").lower() in {"1", "true", "yes"}
@@ -56,7 +57,6 @@ def health_check():
 
 
 app.include_router(ws.router)
-
 
 if __name__ == "__main__":
     uvicorn.run("backend.app.main:app", host="127.0.0.1", port=8000, reload=True)

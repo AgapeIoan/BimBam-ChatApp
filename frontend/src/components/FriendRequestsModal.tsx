@@ -8,8 +8,8 @@ import {
   XCircle,
   Clock,
 } from "lucide-react";
-import type { FriendRequestApi, UserSearchResult } from "../types/friendRequests";
-
+import type { FriendRequestApi } from "../types/friendRequests/friendRequestApi";
+import type { UserSearchResult } from "../types/user/userSearchResult";
 
 
 interface FriendRequestsModalProps {
@@ -21,7 +21,7 @@ interface FriendRequestsModalProps {
   onDeclineRequest: (id: string) => void;
   onCancelRequest: (id: string) => void;
   onSendRequest: (userId: string) => void;
-  onSearchUsers: (query: string) => UserSearchResult[];
+  onSearchUsers: (query: string, type: "username" | "email") => Promise<UserSearchResult[]>;
 }
 
 export function FriendRequestsModal({
@@ -48,10 +48,10 @@ export function FriendRequestsModal({
 
   if (!isOpen) return null;
 
-  const handleSearchChange = (value: string) => {
+  const handleSearchChange = async (value: string, type: "username" | "email") => {
     setSearchValue(value);
     if (value.trim()) {
-      const results = onSearchUsers(value.trim());
+      const results = await onSearchUsers(value.trim(), type);
       setSearchResults(results);
     } else {
       setSearchResults([]);
@@ -181,7 +181,7 @@ export function FriendRequestsModal({
                   }
                   value={searchValue}
                   onChange={(e) =>
-                    handleSearchChange(e.target.value)
+                    handleSearchChange(e.target.value, searchType)
                   }
                   placeholder={
                     searchType === "username"
@@ -200,7 +200,7 @@ export function FriendRequestsModal({
                   </p>
                   {searchResults.map((user, index) => (
                     <div
-                      key={user.id}
+                      key={user.email}
                       className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 animate-slideIn"
                       style={{ animationDelay: `${index * 50}ms` }}
                     >

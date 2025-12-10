@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Users } from "lucide-react";
-import type { Contact } from "./../types/chat";
+import type { Contact } from "../types/conversation/chat";
 
 interface GroupModalProps {
   isOpen: boolean;

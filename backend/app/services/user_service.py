@@ -5,12 +5,21 @@ from fastapi import HTTPException
 
 from app.core.redis_client import set_user_offline, set_user_online
 from app.models.user import User
+from app.schemas.user.user_response import UserResponse
 from app.repositories.user_repository import UserRepository
+from app.utils.errors.validation_exception import ValidationException
 
 
 class UserService:
     def __init__(self, user_repo: UserRepository):
         self.user_repo = user_repo
+
+    def _map_to_user_response(self, user: User):
+        return UserResponse(
+            email=user.email,
+            username=user.username,
+            avatarUrl=user.avatar_url,
+        )
 
     async def get_by_id(self, user_id: UUID):
         return await self.user_repo.get_by_id(user_id)
@@ -67,3 +76,19 @@ class UserService:
 
         updated_user = await self.user_repo.update_username(user, new_username)
         return updated_user.username
+
+    async def search_user_by_email(self, query: str) -> list[UserResponse]:
+        if not query:
+            raise ValidationException("Email query cannot be empty")
+        users = await self.user_repo.search_by_email(query)
+        if not users:
+            return []
+        return [self._map_to_user_response(user) for user in users]
+
+    async def search_user_by_username(self, query: str) -> list[UserResponse]:
+        if not query:
+            raise ValidationException("Username query cannot be empty")
+        users = await self.user_repo.search_by_username(query)
+        if not users:
+            return []
+        return [self._map_to_user_response(user) for user in users]

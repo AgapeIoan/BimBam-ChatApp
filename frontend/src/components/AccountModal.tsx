@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { X, Mail } from 'lucide-react';
-import type { UserAccountDetails } from '../types/userAccountDetails';
+import type { UserAccountDetails } from '../types/user/userAccountDetails';
 
 interface AccountModalProps {
   isOpen: boolean;

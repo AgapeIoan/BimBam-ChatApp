@@ -5,22 +5,26 @@ import { FriendRequestsModal } from './FriendRequestsModal';
 import { AccountModal } from './AccountModal';
 import { GroupModal } from "./GroupModal";
 import { v4 as uuidv4 } from 'uuid';
-import type { UserAccountDetails } from '../types/userAccountDetails';
-import type { Message, ConversationUser, ConversationPreview } from '../types/chat';
-import type { FriendRequestApi, UserSearchResult} from '../types/friendRequests';
+import type { UserAccountDetails } from '../types/user/userAccountDetails';
+import type { Message} from '../types/conversation/chat';
+import type { ConversationUser } from '../types/conversation/conversationUser';
+import type { ConversationPreview } from '../types/conversation/conversationPreview';
+import type { FriendRequestApi } from '../types/friendRequests/friendRequestApi';
+import type { UserSearchResult } from '../types/user/userSearchResult';
 import { loadConversationPreviews } from '../services/conversationService';
-import { getMe } from '../services/meService';
-
-type GroupModalMode = "create" | "edit";
+import { getMe, searchUsers } from '../services/userService';
 import {
   acceptFriendRequest,
   declineFriendRequest,
   cancelFriendRequest,
   sendFriendRequest,
-  searchUsers,
   listIncomingRequests,
   listOutgoingRequests,
 } from '../services/friendRequestsService';
+
+type GroupModalMode = "create" | "edit";
+type SearchType = "username" | "email";
+
 
 export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
@@ -171,12 +175,19 @@ export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
     }
   };
 
-  const handleSearchUsers = (query: string): UserSearchResult[] => {
-    const results = searchUsers(query);
+  const handleSearchUsers = async (query: string, type: SearchType): Promise<UserSearchResult[]> => {
+    const results = await searchUsers(query, type);
     return results.map(user => {
       const isFriend = friendsList.some(f => f.username === user.username);
-      const hasPendingRequest = sentRequests.some(r => r.toUser.username === user.username);
-      return { ...user, isFriend, hasPendingRequest };
+      const hasPendingRequest = incomingRequests.some(r => r.fromUser.username === user.username) ||
+        sentRequests.some(r => r.toUser.username === user.username);
+      return {
+        username: user.username,
+        email: user.email,
+        avatarUrl: user.avatarUrl,
+        isFriend: isFriend,
+        hasPendingRequest: hasPendingRequest,
+      };
     });
   };
 
