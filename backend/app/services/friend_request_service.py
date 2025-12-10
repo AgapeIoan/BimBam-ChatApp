@@ -66,14 +66,23 @@ class FriendRequestService:
             from_user_id, to_user_id
         )
         if existing:
-            # Only block if status is PENDING or ACCEPTED
             if existing.status in [
                 FriendRequestStatus.PENDING,
                 FriendRequestStatus.ACCEPTED,
             ]:
                 raise ValidationException("Friend request already sent or accepted")
-            # If DECLINED or CANCELLED, allow sending a new request by deleting the old one
             await self.friend_request_repo.delete_friend_request(existing.id)
+
+        reverse = await self.friend_request_repo.get_friend_request(
+            to_user_id, from_user_id
+        )
+        if reverse and reverse.status in [
+            FriendRequestStatus.PENDING,
+            FriendRequestStatus.ACCEPTED,
+        ]:
+            raise ValidationException(
+                "The target user has already sent you a friend request"
+            )
 
         result = await self.friend_request_repo.create_friend_request(
             from_user_id, to_user_id
