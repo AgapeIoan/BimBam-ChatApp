@@ -7,15 +7,32 @@ export type Message = {
 };
 
 export type Contact = {
-  id: string;
-  name: string;
-  avatar: string;
-  lastMessage: string;
-  timestamp: string;
-  unread?: number;
-  online?: boolean;
-  isFriend?: boolean;
+  email: string;
+  username: string;
+  avatarUrl: string;
+  provider: string;
+  id : string;
+  lastseenAt: Date | null;
 };
+
+export interface ConversationUser {
+    email: string;
+    username: string;
+    avatarUrl: string;
+    provider: string;
+    id : string;
+    lastseenAt: Date | null;
+}
+
+export interface ConversationPreview {
+  id: string;
+  isGroup: boolean;
+    name: string | null;
+    lastMessage: string;
+    lastMessageAt: string;
+    otherUsers: ConversationUser[];
+    unreadCount: number;
+}
 
 export type FriendRequest = {
   fromId: string;

@@ -1,9 +1,10 @@
-import { Search, MessageCircle, MoreVertical, LogOut, UserPlus, UserCircle } from 'lucide-react';
-import type { Contact } from '../types/chat'
+import { Search, MessageCircle, MoreVertical, LogOut, UserPlus, UserCircle, Users } from 'lucide-react';
+import type { ConversationUser, ConversationPreview } from '../types/chat';
 import { useState } from 'react';
 
 interface ChatSidebarProps {
-  contacts: Contact[];
+  contacts: ConversationUser[];
+  conversations: ConversationPreview[];
   selectedContactId: string | null;
   onSelectContact: (id: string) => void;
   onLogout: () => void;
@@ -12,10 +13,12 @@ interface ChatSidebarProps {
   onOpenFriendRequests: () => void;
   incomingRequestsCount: number;
   onOpenAccount: () => void;
+  onOpenCreateGroup: () => void;
 }
 
 export function ChatSidebar({ 
   contacts, 
+  conversations,
   selectedContactId, 
   onSelectContact, 
   onLogout, 
@@ -23,9 +26,16 @@ export function ChatSidebar({
   onToggleCollapse,
   onOpenFriendRequests,
   incomingRequestsCount,
-  onOpenAccount
+  onOpenAccount,
+  onOpenCreateGroup
 }: ChatSidebarProps) {
   const [showMenu, setShowMenu] = useState(false);
+
+  // For each contact, find unread count from conversations
+  function getUnreadCount(contactId: string) {
+    const conv = conversations.find(c => c.otherUsers.some(u => u.id === contactId));
+    return conv ? conv.unreadCount : 0;
+  }
 
   return (
     <div className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-80'}`}>
@@ -77,11 +87,12 @@ export function ChatSidebar({
           )}
         </div>
 
+
         {/* Friend Request Button */}
         {!isCollapsed && (
           <button
             onClick={onOpenFriendRequests}
-            className="w-full mb-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 relative"
+            className="w-full mb-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 relative"
           >
             <UserPlus className="w-4 h-4" />
             <span>Friend Requests</span>
@@ -96,7 +107,7 @@ export function ChatSidebar({
         {isCollapsed && (
           <button
             onClick={onOpenFriendRequests}
-            className="w-full mb-4 p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center relative"
+            className="w-full mb-2 p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center relative"
             title="Friend Requests"
           >
             <UserPlus className="w-5 h-5" />
@@ -105,6 +116,27 @@ export function ChatSidebar({
                 {incomingRequestsCount}
               </span>
             )}
+          </button>
+        )}
+
+        {/* Create Group Button */}
+        {!isCollapsed && (
+          <button
+            onClick={onOpenCreateGroup}
+            className="w-full mb-4 px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+          >
+            <Users className="w-4 h-4" />
+            <span>Create Group</span>
+          </button>
+        )}
+
+        {isCollapsed && (
+          <button
+            onClick={onOpenCreateGroup}
+            className="w-full mb-4 p-3 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center"
+            title="Create Group"
+          >
+            <Users className="w-5 h-5" />
           </button>
         )}
 
@@ -123,44 +155,40 @@ export function ChatSidebar({
 
       {/* Contacts List */}
       <div className="flex-1 overflow-y-auto">
-        {contacts.filter(c => c.isFriend).map((contact) => (
+        {contacts.map((contact) => (
           <button
             key={contact.id}
             onClick={() => onSelectContact(contact.id)}
             className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100 ${
               selectedContactId === contact.id ? 'bg-blue-50' : ''
             }`}
-            title={isCollapsed ? contact.name : undefined}
+            title={isCollapsed ? contact.username : undefined}
           >
             {/* Avatar */}
             <div className="relative flex-shrink-0">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white">
-                {contact.avatar}
+                {/* Show avatar image if available */}
+                {contact.avatarUrl ? (
+                  <img src={contact.avatarUrl} alt={contact.username} className="w-12 h-12 rounded-full object-cover" />
+                ) : (
+                  contact.username[0].toUpperCase()
+                )}
               </div>
-              {contact.online && (
+              {contact.lastseenAt && (
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
               )}
-              {isCollapsed && contact.unread && (
+              {getUnreadCount(contact.id) > 0 && (
                 <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
-                  {contact.unread}
+                  {getUnreadCount(contact.id)}
                 </div>
               )}
             </div>
-
             {/* Contact Info */}
             {!isCollapsed && (
               <div className="flex-1 min-w-0 text-left">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-gray-900 truncate">{contact.name}</span>
-                  <span className="text-gray-500 text-xs flex-shrink-0 ml-2">{contact.timestamp}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-gray-600 text-sm truncate">{contact.lastMessage}</p>
-                  {contact.unread && (
-                    <div className="flex-shrink-0 ml-2 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
-                      {contact.unread}
-                    </div>
-                  )}
+                  <span className="text-gray-900 truncate">{contact.username}</span>
+                  {/* Optionally show last seen or other info */}
                 </div>
               </div>
             )}
