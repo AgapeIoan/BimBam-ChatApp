@@ -1,14 +1,20 @@
 from typing import Optional
 
+from fastapi.routing import APIRoute
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core import redis_client
+from app.main import app
+
+from app.db import session as session_module
+from app.main import app
+
+from app.repositories.friendship_repository import FriendshipRepository
+from app.models.user import User
+
 try:
     import fakeredis.aioredis as _fakeredis_aioredis
 except Exception:  # pragma: no cover - fallback used only in some test environments
     _fakeredis_aioredis = None
-
-from fastapi.routing import APIRoute
-
-from app.core import redis_client
-from app.main import app
 
 
 class _SimpleAsyncFakeRedis:
@@ -90,3 +96,45 @@ def _find_route_path(endpoint_name: str, method: Optional[str] = None) -> str:
             if method is None or method.upper() in route.methods:
                 return route.path
     raise RuntimeError(f"Route for endpoint {endpoint_name!r} not found")
+
+def _create_friendship_pair(user_a_id, user_b_id, event_loop):
+    async def _inner():
+        async with session_module.AsyncSessionLocal() as session:
+            repo = FriendshipRepository(session)
+            await repo.create_friendship_pair(user_a_id, user_b_id)
+            await session.commit()
+
+    event_loop.run_until_complete(_inner())
+
+def _find_friend_conversation_route():
+    """
+    Find the path and HTTP method for the open_or_create_direct_conversation endpoint.
+    We don't assume it's POST; we read what the router actually exposes.
+    """
+    for route in app.routes:
+        if isinstance(route, APIRoute) and route.endpoint.__name__ == "open_or_create_direct_conversation":
+            # Use any method other than HEAD/OPTIONS
+            methods = [m for m in route.methods if m not in ("HEAD", "OPTIONS")]
+            if not methods:
+                raise RuntimeError("No valid HTTP method found for open_or_create_direct_conversation")
+            return route.path, methods[0]
+    raise RuntimeError("Route for open_or_create_direct_conversation not found")
+
+async def _create_user(session: AsyncSession, email: str, username: str, provider: str = "google", provider_id: str | None = None) -> User:
+    """
+    Local helper to create a user with required OAuth fields populated.
+    Avoids NOT NULL constraint issues on users.provider/users.provider_id.
+    """
+    if provider_id is None:
+        provider_id = email  # something unique-ish and non-null
+
+    user = User(
+        email=email,
+        username=username,
+        provider=provider,
+        provider_id=provider_id,
+    )
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    return user
