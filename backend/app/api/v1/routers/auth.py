@@ -68,8 +68,9 @@ async def google_callback(request: Request, session: AsyncSession = Depends(get_
 
     repo = UserRepository(session)
 
+    user = await repo.get_by_provider_id(provider, provider_id)
+
     if mode == "login":
-        user = await repo.get_by_provider_id(provider, provider_id)
         if not user:
             # redirect back with "no_account" error
             return RedirectResponse(
@@ -77,13 +78,14 @@ async def google_callback(request: Request, session: AsyncSession = Depends(get_
                 status_code=302,
             )
     else:
-
-        user = await user_service.login_or_register(
-            provider=provider,
-            provider_id=provider_id,
-            email=email,
-            username=name,
-            avatar_url=avatar_url,
+        # Signup: create user if missing and force username prompt (empty username)
+        if not user:
+            user = await user_service.login_or_register(
+                provider=provider,
+                provider_id=provider_id,
+                email=email,
+                username="",
+                avatar_url=avatar_url,
             )
 
     return set_auth_cookies_and_redirect(str(user.id)) #type: ignore
@@ -95,6 +97,7 @@ async def get_me(current_user=Depends(get_current_user)):
         "email": current_user.email,
         "username": current_user.username,
         "avatar_url": current_user.avatar_url,
+        "name": current_user.username,
     }
 
 @router.post("/logout")
