@@ -3,347 +3,104 @@ import { ChatSidebar } from './ChatSidebar';
 import { ChatView } from './ChatView';
 import { FriendRequestsModal } from './FriendRequestsModal';
 import { AccountModal } from './AccountModal';
-import type { UserAccount } from './AccountModal';
+import { GroupModal } from "./GroupModal";
+import type { UserAccountDetails } from '../types/user/userAccountDetails';
+import type { Message} from '../types/conversation/chat';
+import type { ConversationPreview } from '../types/conversation/conversationPreview';
+import type { FriendRequestApi } from '../types/friendRequests/friendRequestApi';
+import type { UserSearchResult } from '../types/user/userSearchResult';
 import ws from '../api/ws';
+import { loadConversationPreviews } from '../services/conversationService';
+import { getMe, searchUsers } from '../services/userService';
+import {
+  acceptFriendRequest,
+  declineFriendRequest,
+  cancelFriendRequest,
+  sendFriendRequest,
+  listIncomingRequests,
+  listOutgoingRequests,
+} from '../services/friendRequestsService';
+import type { FriendListItem } from '../types/friend/friendListItem'; 
+import { listMyFriends } from '../services/friendsService';
 
-export interface Message {
-  id: string;
-  text: string;
-  sender: 'me' | 'them';
-  timestamp: Date;
-  status?: 'sent' | 'delivered' | 'read' | 'failed';
-  editedAt?: string | null;
-  editedById?: string | null;
-  reactions?: { emoji: string; count: number; reactedByMe?: boolean }[];
-}
+type GroupModalMode = "create" | "edit";
+type SearchType = "username" | "email";
 
-export interface Contact {
-  id: string;
-  name: string;
-  avatar: string;
-  lastMessage: string;
-  timestamp: string;
-  unread?: number;
-  online?: boolean;
-  isFriend?: boolean;
-}
 
-export interface FriendRequest {
-  fromId: string;
-  fromName: string;
-  fromUsername: string;
-  fromEmail: string;
-  fromAvatar: string;
-  timestamp: string;
-  status: 'pending' | 'accepted' | 'rejected';
-}
-
-export interface SentRequest {
-  toId: string;
-  toName: string;
-  toUsername: string;
-  toEmail: string;
-  toAvatar: string;
-  timestamp: string;
-  status: 'pending' | 'accepted' | 'rejected';
-}
-
-export interface UserSearchResult {
-  id: string;
-  name: string;
-  username: string;
-  email: string;
-  avatar: string;
-  isFriend: boolean;
-  hasPendingRequest: boolean;
-}
-
-// Mock data
-const contacts: Contact[] = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    avatar: 'SJ',
-    lastMessage: 'See you tomorrow!',
-    timestamp: '2m ago',
-    unread: 2,
-    online: true,
-    isFriend: true,
-  },
-  {
-    id: '2',
-    name: 'Mike Chen',
-    avatar: 'MC',
-    lastMessage: 'Thanks for the help',
-    timestamp: '1h ago',
-    online: true,
-    isFriend: true,
-  },
-  {
-    id: '3',
-    name: 'Emma Wilson',
-    avatar: 'EW',
-    lastMessage: 'Did you get my email?',
-    timestamp: '3h ago',
-    unread: 1,
-    online: false,
-    isFriend: true,
-  },
-  {
-    id: '4',
-    name: 'Alex Turner',
-    avatar: 'AT',
-    lastMessage: 'Perfect, sounds good',
-    timestamp: 'Yesterday',
-    online: false,
-    isFriend: true,
-  },
-  {
-    id: '5',
-    name: 'Lisa Park',
-    avatar: 'LP',
-    lastMessage: 'Let me check and get back',
-    timestamp: 'Yesterday',
-    online: true,
-    isFriend: true,
-  },
-  {
-    id: '6',
-    name: 'David Martinez',
-    avatar: 'DM',
-    lastMessage: 'Have a great weekend!',
-    timestamp: '2 days ago',
-    online: false,
-    isFriend: true,
-  },
-];
-
-const mockConversations: Record<string, Message[]> = {
-  '1': [
-    {
-      id: '1',
-      text: 'Hey! How are you doing?',
-      sender: 'them',
-      timestamp: new Date(Date.now() - 3600000),
-    },
-    {
-      id: '2',
-      text: "I'm doing great, thanks! How about you?",
-      sender: 'me',
-      timestamp: new Date(Date.now() - 3500000),
-      status: 'read',
-      editedAt: new Date(Date.now() - 1800000).toISOString(),
-      reactions: [
-        { emoji: '👍', count: 2, reactedByMe: true },
-        { emoji: '😂', count: 1 },
-      ],
-    },
-    {
-      id: '3',
-      text: 'Pretty good! Are we still on for the meeting tomorrow?',
-      sender: 'them',
-      timestamp: new Date(Date.now() - 3400000),
-    },
-    {
-      id: '4',
-      text: 'Yes absolutely! 2pm works for me.',
-      sender: 'me',
-      timestamp: new Date(Date.now() - 3300000),
-      status: 'read',
-    },
-    {
-      id: '5',
-      text: 'See you tomorrow!',
-      sender: 'them',
-      timestamp: new Date(Date.now() - 120000),
-      reactions: [{ emoji: '❤️', count: 1 }],
-    },
-  ],
-  '2': [
-    {
-      id: '1',
-      text: 'Could you help me with the project?',
-      sender: 'them',
-      timestamp: new Date(Date.now() - 7200000),
-    },
-    {
-      id: '2',
-      text: 'Sure! What do you need help with?',
-      sender: 'me',
-      timestamp: new Date(Date.now() - 7100000),
-      status: 'read',
-    },
-    {
-      id: '3',
-      text: 'Thanks for the help',
-      sender: 'them',
-      timestamp: new Date(Date.now() - 3600000),
-    },
-  ],
-  '3': [
-    {
-      id: '1',
-      text: 'Did you get my email?',
-      sender: 'them',
-      timestamp: new Date(Date.now() - 10800000),
-    },
-  ],
-  '4': [
-    {
-      id: '1',
-      text: 'Want to grab lunch next week?',
-      sender: 'them',
-      timestamp: new Date(Date.now() - 86400000),
-    },
-    {
-      id: '2',
-      text: 'Perfect, sounds good',
-      sender: 'them',
-      timestamp: new Date(Date.now() - 86000000),
-    },
-  ],
-  '5': [
-    {
-      id: '1',
-      text: 'Can you review the document?',
-      sender: 'them',
-      timestamp: new Date(Date.now() - 86400000),
-    },
-    {
-      id: '2',
-      text: 'Let me check and get back',
-      sender: 'them',
-      timestamp: new Date(Date.now() - 85000000),
-    },
-  ],
-  '6': [
-    {
-      id: '1',
-      text: 'Have a great weekend!',
-      sender: 'them',
-      timestamp: new Date(Date.now() - 172800000),
-    },
-  ],
-};
-
-export function ChatApp({ onLogout }: { onLogout: () => void }) {
+export function ChatApp({ onLogout }: Readonly<{ onLogout: () => void }>) {
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Record<string, Message[]>>(mockConversations);
+  const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
-  const [friendsList, setFriendsList] = useState<Contact[]>(contacts);
-  const [userAccount, setUserAccount] = useState<UserAccount>({
-    name: 'Alex Morgan',
-    username: 'alexmorgan',
-    email: 'alex.morgan@email.com',
-    password: 'password123',
-    signUpMethod: 'email',
-  });
-  const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([
-    {
-      fromId: '1',
-      fromName: 'John Doe',
-      fromUsername: 'johndoe',
-      fromEmail: 'john.doe@email.com',
-      fromAvatar: 'JD',
-      timestamp: '5m ago',
-      status: 'pending',
-    },
-    {
-      fromId: '2',
-      fromName: 'Jane Smith',
-      fromUsername: 'janesmith',
-      fromEmail: 'jane.smith@email.com',
-      fromAvatar: 'JS',
-      timestamp: '1h ago',
-      status: 'pending',
-    },
-  ]);
-  const [sentRequests, setSentRequests] = useState<SentRequest[]>([
-    {
-      toId: '1',
-      toName: 'Bob Wilson',
-      toUsername: 'bobwilson',
-      toEmail: 'bob.wilson@email.com',
-      toAvatar: 'BW',
-      timestamp: '2h ago',
-      status: 'pending',
-    },
-  ]);
+  const [friendsList, setFriendsList] = useState<FriendListItem[]>([]);
+  const [userAccount, setUserAccount] = useState<UserAccountDetails>({
+    id: '',
+    email: '',
+    username: '',
+    avatar_url: null,
+  }
+  )
+  const [incomingRequests, setIncomingRequests] = useState<FriendRequestApi[]>([]);
+  const [sentRequests, setSentRequests] = useState<FriendRequestApi[]>([]);
+  const [conversations, setConversations] = useState<ConversationPreview[]>([]);
+  // Group modal state
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [groupModalMode, setGroupModalMode] = useState<GroupModalMode>("create");
+  const [editingGroup, setEditingGroup] = useState<ConversationPreview | null>(null);
 
-  // Mock user database for search
-  const mockUsers: UserSearchResult[] = [
-    {
-      id: 'u1',
-      name: 'Tom Anderson',
-      username: 'tomanderson',
-      email: 'tom.anderson@email.com',
-      avatar: 'TA',
-      isFriend: false,
-      hasPendingRequest: false,
-    },
-    {
-      id: 'u2',
-      name: 'Rachel Green',
-      username: 'rachelgreen',
-      email: 'rachel.green@email.com',
-      avatar: 'RG',
-      isFriend: false,
-      hasPendingRequest: false,
-    },
-    {
-      id: 'u3',
-      name: 'Monica Geller',
-      username: 'monicageller',
-      email: 'monica.geller@email.com',
-      avatar: 'MG',
-      isFriend: false,
-      hasPendingRequest: false,
-    },
-    {
-      id: 'u4',
-      name: 'Ross Geller',
-      username: 'rossgeller',
-      email: 'ross.geller@email.com',
-      avatar: 'RG',
-      isFriend: false,
-      hasPendingRequest: false,
-    },
-    {
-      id: 'u5',
-      name: 'Chandler Bing',
-      username: 'chandlerbing',
-      email: 'chandler.bing@email.com',
-      avatar: 'CB',
-      isFriend: false,
-      hasPendingRequest: false,
-    },
-    {
-      id: 'u6',
-      name: 'Joey Tribbiani',
-      username: 'joeytribbiani',
-      email: 'joey.tribbiani@email.com',
-      avatar: 'JT',
-      isFriend: false,
-      hasPendingRequest: false,
-    },
-    {
-      id: 'u7',
-      name: 'Phoebe Buffay',
-      username: 'phoebebuffay',
-      email: 'phoebe.buffay@email.com',
-      avatar: 'PB',
-      isFriend: false,
-      hasPendingRequest: false,
-    },
-  ];
+  useEffect(() => {
+    async function fetchConversations() {
+      try {
+        const previews = await loadConversationPreviews();
+        setConversations(previews);
+      } catch (e) {
+        console.error('Failed to fetch conversations:', e);
+      }
+    }
+    fetchConversations();
 
-  const selectedContact = friendsList.find((c) => c.id === selectedContactId);
+    async function fetchRequests() {
+      try {
+        const [incoming, sent] = await Promise.all([
+          listIncomingRequests(),
+          listOutgoingRequests(),
+        ]);
+        setIncomingRequests(incoming);
+        setSentRequests(sent);
+      } catch (e) {
+        console.error('Failed to fetch friend requests:', e);
+      }
+    }
+    fetchRequests();
+
+    async function fetchUserAccount() {
+      try {
+        const me = await getMe();
+        setUserAccount(me);
+      } catch (e) {
+        console.error('Failed to fetch user account:', e);
+      }
+    }
+    fetchUserAccount();
+
+    async function fetchFriendsList() {
+      try {
+        const friends = await listMyFriends();
+        setFriendsList(friends);
+      } catch (e) {
+        console.error('Failed to fetch friends list:', e);
+      } 
+    }
+    fetchFriendsList();
+  }, []);
+
+  const selectedContact = friendsList.find((c) => c.friend.id === selectedContactId);
   const currentMessages = selectedContactId ? messages[selectedContactId] || [] : [];
 
   useEffect(() => {
     ws.connect();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const unsub = ws.subscribe((env: any) => {
       const t = String(env.type || '').toLowerCase();
       if (t.includes('edit')) {
@@ -380,9 +137,9 @@ export function ChatApp({ onLogout }: { onLogout: () => void }) {
   const handleSendMessage = (text: string) => {
     if (!selectedContactId) return;
 
-    const selectedFriend = friendsList.find((c) => c.id === selectedContactId);
-    if (!selectedFriend?.isFriend) {
-      console.log('Cannot send message to non-friend');
+    const selectedFriend = friendsList.find((c) => c.friend.id === selectedContactId);
+    if (!selectedFriend) {
+      console.log('Cannot send message: contact not found');
       return;
     }
 
@@ -419,120 +176,171 @@ export function ChatApp({ onLogout }: { onLogout: () => void }) {
     }, 3000);
   };
 
-  const handleEditMessage = (messageId: string, newText: string) => {
-    if (!selectedContactId) return;
-    // optimistic update
-    setMessages((prev) => ({
-      ...prev,
-      [selectedContactId]: prev[selectedContactId].map((m) => (m.id === messageId ? { ...m, text: newText, editedAt: new Date().toISOString() } : m)),
-    }));
-
-    ws.send({ type: 'message_edit', data: { messageId, content: newText } });
-  };
-
-  const handleReact = (messageId: string, emoji: string) => {
-    if (!selectedContactId) return;
-    // optimistic toggle
-    setMessages((prev) => {
-      const conv = prev[selectedContactId] || [];
-      const newConv = conv.map((m) => {
-        if (m.id !== messageId) return m;
-        const existing = (m.reactions || []).find((r) => r.emoji === emoji);
-        if (existing) {
-          return { ...m, reactions: (m.reactions || []).filter((r) => r.emoji !== emoji) };
-        }
-        return { ...m, reactions: [...(m.reactions || []), { emoji, count: 1, reactedByMe: true }] };
-      });
-      return { ...prev, [selectedContactId]: newConv };
-    });
-
-    ws.send({ type: 'message_reaction', data: { messageId, emoji, action: 'add' } });
-  };
-
-  const handleAcceptRequest = (id: string) => {
-    const request = incomingRequests.find((r) => r.fromId === id);
-    if (request) {
-      // Add to friends list
-      const newFriend: Contact = {
-        id: Date.now().toString(),
-        name: request.fromName,
-        avatar: request.fromAvatar,
-        lastMessage: '',
-        timestamp: 'Just now',
-        online: false,
-        isFriend: true,
-      };
-      setFriendsList((prev) => [...prev, newFriend]);
-      
-      // Remove from incoming requests
-      setIncomingRequests((prev) => prev.filter((r) => r.fromId !== id));
+  const handleAcceptRequest = async (id: string) => {
+    try {
+      await acceptFriendRequest(id);
+      const friends = await listMyFriends();
+      setFriendsList(friends);
+      const incoming = await listIncomingRequests();
+      setIncomingRequests(incoming);
+    } catch (e) {
+      console.error(e);
     }
   };
 
-  const handleDeclineRequest = (id: string) => {
-    setIncomingRequests((prev) => prev.filter((r) => r.fromId !== id));
+  const handleDeclineRequest = async (id: string) => {
+    try {
+      await declineFriendRequest(id);
+      setIncomingRequests((prev) => prev.filter((r) => r.id !== id));
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const handleCancelRequest = (id: string) => {
-    setSentRequests((prev) => prev.filter((r) => r.toId !== id));
+  const handleCancelRequest = async (id: string) => {
+    try {
+      await cancelFriendRequest(id);
+      setSentRequests((prev) => prev.filter((r) => r.id !== id));
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const handleSendRequest = (usernameOrEmail: string) => {
-    // Simulate sending a friend request
-    const newRequest: SentRequest = {
-      toId: Date.now().toString(),
-      toName: usernameOrEmail,
-      toUsername: usernameOrEmail.substring(0, 2).toUpperCase(),
-      toEmail: usernameOrEmail + '@email.com',
-      toAvatar: usernameOrEmail.substring(0, 2).toUpperCase(),
-      timestamp: 'Just now',
-      status: 'pending',
-    };
-    setSentRequests((prev) => [...prev, newRequest]);
-    console.log('Sending friend request to:', usernameOrEmail);
+  const handleSendRequest = async (toEmail: string) => {
+    try {
+      const newRequest = await sendFriendRequest(toEmail);
+      setSentRequests((prev) => [...prev, newRequest]);
+      console.log('Sending friend request to:', toEmail);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const handleSearchUsers = (query: string): UserSearchResult[] => {
-    // Search by username or email
-    const lowerQuery = query.toLowerCase();
-    const results = mockUsers.filter(user => {
-      const matchesUsername = user.username.toLowerCase().includes(lowerQuery);
-      const matchesEmail = user.email.toLowerCase().includes(lowerQuery);
-      return matchesUsername || matchesEmail;
-    });
-
-    // Mark users who are already friends or have pending requests
+  const handleSearchUsers = async (query: string, type: SearchType): Promise<UserSearchResult[]> => {
+    const results = await searchUsers(query, type);
     return results.map(user => {
-      const isFriend = friendsList.some(f => f.name === user.name);
-      const hasPendingRequest = sentRequests.some(r => r.toUsername === user.username);
-      return { ...user, isFriend, hasPendingRequest };
+      const isFriend = friendsList.some(f => f.friend.id === user.id);
+      const hasPendingRequest = incomingRequests.some(r => r.fromUser.username === user.username) ||
+        sentRequests.some(r => r.toUser.username === user.username);
+      return {
+        username: user.username,
+        email: user.email,
+        avatarUrl: user.avatarUrl,
+        isFriend: isFriend,
+        hasPendingRequest: hasPendingRequest,
+      };
     });
   };
 
-  const handleSaveAccount = (account: UserAccount) => {
+  const handleSaveAccount = (account: UserAccountDetails) => {
     setUserAccount(account);
     console.log('Account updated:', account);
+  };
+
+  // Handler to open create group modal
+  const handleOpenCreateGroup = () => {
+    setGroupModalMode("create");
+    setEditingGroup(null);
+    setShowGroupModal(true);
+  };
+
+  // Handler to open edit group modal
+  const handleOpenEditGroup = (conversationId: string) => {
+    const conv = conversations.find((c) => c.id === conversationId && c.isGroup);
+    if (!conv) return;
+    setGroupModalMode("edit");
+    setEditingGroup(conv);
+    setShowGroupModal(true);
+  };
+
+  // Handler for group modal submit
+  const handleGroupModalSubmit = (groupName: string, memberIds: string[]) => {
+    if (groupModalMode === "create") {
+      // Create new group
+      const selectedMembers = friendsList.filter((f) => memberIds.includes(f.friend.id));
+      const newGroup: ConversationPreview = {
+        id: `group-${Date.now()}`,
+        isGroup: true,
+        name: groupName,
+        lastMessage: "last message",
+        lastMessageAt: "Just now",
+        otherUsers: selectedMembers.map((member) => ({
+          username: member.friend.username,
+          email: member.friend.email,
+          avatarUrl: member.friend.avatarUrl ?? "",
+          lastSeen: member.friend.lastSeen,
+          provider: member.friend.provider,
+          id: member.friend.id,
+        })),
+        unreadCount: 0,
+      };
+      setConversations((prev) => [newGroup, ...prev]);
+      setMessages((prev) => ({ ...prev, [newGroup.id]: [] }));
+      setSelectedContactId(newGroup.id);
+    } else if (groupModalMode === "edit" && editingGroup) {
+      // Edit group
+      const selectedMembers = friendsList.filter((f) => memberIds.includes(f.friend.id));
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.id === editingGroup.id
+            ? {
+                ...conv,
+                name: groupName,
+                other_users: selectedMembers.map((member) => ({
+                  id: member.friend.id,
+                  username: member.friend.username,
+                  email: member.friend.email,
+                  avatarUrl: member.friend.avatarUrl,
+                  isOnline: false,
+                })),
+              }
+            : conv
+        )
+      );
+    }
+    setShowGroupModal(false);
+    setEditingGroup(null);
+  };
+
+  // Custom handler for selecting contact
+  const handleSelectContact = async (contactId: string) => {
+    // Verifică dacă există conversație cu mesaje pentru contactul selectat
+    const hasConversation = conversations.some(
+      (conv) => Array.isArray(conv.otherUsers) && conv.otherUsers.some((u) => u.id === contactId)
+    );
+    if (!hasConversation) {
+      // Creează sau deschide conversația directă
+      try {
+        await import('../services/conversationService').then(m => m.openOrCreateDirectConversation(contactId));
+        const previews = await loadConversationPreviews();
+        setConversations(previews);
+      } catch (e) {
+        console.error('Failed to open or create direct conversation:', e);
+      }
+    }
+    setSelectedContactId(contactId);
   };
 
   return (
     <div className="h-screen flex bg-gray-50">
       <ChatSidebar
         contacts={friendsList}
+        conversations={conversations}
         selectedContactId={selectedContactId}
-        onSelectContact={setSelectedContactId}
+        onSelectContact={handleSelectContact}
         onLogout={onLogout}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         onOpenFriendRequests={() => setShowFriendRequests(true)}
         incomingRequestsCount={incomingRequests.length}
         onOpenAccount={() => setShowAccount(true)}
+        onOpenCreateGroup={handleOpenCreateGroup}
       />
       <ChatView
         contact={selectedContact}
         messages={currentMessages}
         onSendMessage={handleSendMessage}
-        onEditMessage={handleEditMessage}
-        onReact={handleReact}
+        onEditGroup={handleOpenEditGroup}
       />
       <FriendRequestsModal
         isOpen={showFriendRequests}
@@ -550,6 +358,18 @@ export function ChatApp({ onLogout }: { onLogout: () => void }) {
         onClose={() => setShowAccount(false)}
         account={userAccount}
         onSave={handleSaveAccount}
+      />
+      <GroupModal
+        isOpen={showGroupModal}
+        mode={groupModalMode}
+        onClose={() => {
+          setShowGroupModal(false);
+          setEditingGroup(null);
+        }}
+        friends={friendsList}
+        initialName={groupModalMode === "edit" ? editingGroup?.name ?? "" : ""}
+        initialMemberIds={groupModalMode === "edit" ? editingGroup?.otherUsers.map((u) => u.id) ?? [] : []}
+        onSubmit={handleGroupModalSubmit}
       />
     </div>
   );

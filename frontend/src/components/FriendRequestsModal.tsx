@@ -8,37 +8,20 @@ import {
   XCircle,
   Clock,
 } from "lucide-react";
+import type { FriendRequestApi } from "../types/friendRequests/friendRequestApi";
+import type { UserSearchResult } from "../types/user/userSearchResult";
 
-export interface FriendRequest {
-  fromId: string;
-  fromName: string;
-  fromUsername: string;
-  fromEmail: string;
-  fromAvatar: string;
-  timestamp: string;
-  status: "pending" | "accepted" | "rejected";
-}
-
-export interface SentRequest {
-  toId: string;
-  toName: string;
-  toUsername: string;
-  toEmail: string;
-  toAvatar: string;
-  timestamp: string;
-  status: "pending" | "accepted" | "rejected";
-}
 
 interface FriendRequestsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  incomingRequests: FriendRequest[];
-  sentRequests: SentRequest[];
+  incomingRequests: FriendRequestApi[];
+  sentRequests: FriendRequestApi[];
   onAcceptRequest: (id: string) => void;
   onDeclineRequest: (id: string) => void;
   onCancelRequest: (id: string) => void;
   onSendRequest: (userId: string) => void;
-  onSearchUsers: (query: string) => UserSearchResult[];
+  onSearchUsers: (query: string, type: "username" | "email") => Promise<UserSearchResult[]>;
 }
 
 export function FriendRequestsModal({
@@ -51,7 +34,7 @@ export function FriendRequestsModal({
   onCancelRequest,
   onSendRequest,
   onSearchUsers,
-}: FriendRequestsModalProps) {
+}: Readonly<FriendRequestsModalProps>) {
   const [activeTab, setActiveTab] = useState<
     "send" | "incoming" | "sent"
   >("send");
@@ -65,10 +48,10 @@ export function FriendRequestsModal({
 
   if (!isOpen) return null;
 
-  const handleSearchChange = (value: string) => {
+  const handleSearchChange = async (value: string, type: "username" | "email") => {
     setSearchValue(value);
     if (value.trim()) {
-      const results = onSearchUsers(value.trim());
+      const results = await onSearchUsers(value.trim(), type);
       setSearchResults(results);
     } else {
       setSearchResults([]);
@@ -82,7 +65,7 @@ export function FriendRequestsModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl h-[600px] flex flex-col">
         {/* Header */}
         <div className="p-6 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
@@ -198,7 +181,7 @@ export function FriendRequestsModal({
                   }
                   value={searchValue}
                   onChange={(e) =>
-                    handleSearchChange(e.target.value)
+                    handleSearchChange(e.target.value, searchType)
                   }
                   placeholder={
                     searchType === "username"
@@ -217,46 +200,59 @@ export function FriendRequestsModal({
                   </p>
                   {searchResults.map((user, index) => (
                     <div
-                      key={user.id}
+                      key={user.email}
                       className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 animate-slideIn"
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white flex-shrink-0">
-                          {user.avatar}
+                          {user.avatarUrl ? (
+                            <img
+                              src={user.avatarUrl}
+                              alt={`${user.username}'s avatar`}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                          ) : (
+                            <UserIcon className="w-6 h-6" />
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-gray-900 truncate">
-                            {user.name}
-                          </p>
-                          <p className="text-gray-600 text-sm truncate">
                             @{user.username}
                           </p>
-                          <p className="text-gray-500 text-xs truncate">
+                          <p className="text-gray-600 text-sm truncate">
                             {user.email}
                           </p>
                         </div>
                       </div>
                       <div className="ml-3 flex-shrink-0">
-                        {user.isFriend ? (
-                          <span className="px-4 py-2 text-gray-500 text-sm">
-                            Already friends
-                          </span>
-                        ) : user.hasPendingRequest ? (
-                          <span className="px-4 py-2 text-gray-500 text-sm">
-                            Request sent
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() =>
-                              handleSendRequest(user.id)
-                            }
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                          >
-                            <UserPlus className="w-4 h-4" />
-                            <span>Add</span>
-                          </button>
-                        )}
+                        {(() => {
+                          if (user.isFriend) {
+                            return (
+                              <span className="px-4 py-2 text-gray-500 text-sm">
+                                Already friends
+                              </span>
+                            );
+                          } else if (user.hasPendingRequest) {
+                            return (
+                              <span className="px-4 py-2 text-gray-500 text-sm">
+                                Request sent
+                              </span>
+                            );
+                          } else {
+                            return (
+                              <button
+                                onClick={() =>
+                                  handleSendRequest(user.email)
+                                }
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                              >
+                                <UserPlus className="w-4 h-4" />
+                                <span>Add</span>
+                              </button>
+                            );
+                          }
+                        })()}
                       </div>
                     </div>
                   ))}
@@ -288,32 +284,38 @@ export function FriendRequestsModal({
               ) : (
                 incomingRequests.map((request) => (
                   <div
-                    key={request.fromId}
+                    key={request.id}
                     className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white">
-                        {request.fromAvatar}
+                        {/* Avatar: fallback to initials if not available */}
+                        {request.fromUser.avatarUrl ? (
+                          <img
+                            src={request.fromUser.avatarUrl}
+                            alt={request.fromUser.username}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          request.fromUser.username[0]?.toUpperCase() || "?"
+                        )}
                       </div>
                       <div>
                         <p className="text-gray-900 truncate">
-                          {request.fromName}
+                          {request.fromUser.username}
                         </p>
                         <p className="text-gray-600 text-sm truncate">
-                          @{request.fromUsername}
-                        </p>
-                        <p className="text-gray-500 text-xs truncate">
-                          {request.fromEmail}
+                          {request.fromUser.email}
                         </p>
                         <p className="text-gray-400 text-xs mt-1">
-                          Requested {request.timestamp}
+                          Requested {new Date(request.createdAt).toLocaleString()}
                         </p>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() =>
-                          onAcceptRequest(request.fromId)
+                          onAcceptRequest(request.id)
                         }
                         className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                       >
@@ -321,7 +323,7 @@ export function FriendRequestsModal({
                       </button>
                       <button
                         onClick={() =>
-                          onDeclineRequest(request.fromId)
+                          onDeclineRequest(request.id)
                         }
                         className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
                       >
@@ -349,31 +351,36 @@ export function FriendRequestsModal({
               ) : (
                 sentRequests.map((request) => (
                   <div
-                    key={request.toId}
+                    key={request.id}
                     className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white flex-shrink-0">
-                        {request.toAvatar}
+                        {request.toUser.avatarUrl ? (
+                          <img
+                            src={request.toUser.avatarUrl}
+                            alt={request.toUser.username}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          request.toUser.username[0]?.toUpperCase() || "?"
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-gray-900 truncate">
-                          {request.toName}
+                          {request.toUser.username}
                         </p>
                         <p className="text-gray-600 text-sm truncate">
-                          @{request.toUsername}
-                        </p>
-                        <p className="text-gray-500 text-xs truncate">
-                          {request.toEmail}
+                          {request.toUser.email}
                         </p>
                         <p className="text-gray-400 text-xs mt-1">
-                          Sent {request.timestamp}
+                          Sent {new Date(request.createdAt).toLocaleString()}
                         </p>
                       </div>
                     </div>
                     <button
                       onClick={() =>
-                        onCancelRequest(request.toId)
+                        onCancelRequest(request.id)
                       }
                       className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors ml-3 flex-shrink-0"
                     >
@@ -388,14 +395,4 @@ export function FriendRequestsModal({
       </div>
     </div>
   );
-}
-
-export interface UserSearchResult {
-  id: string;
-  username: string;
-  email: string;
-  avatar: string;
-  name: string;
-  isFriend: boolean;
-  hasPendingRequest: boolean;
 }
