@@ -12,9 +12,7 @@ class FriendRequestRepository:
     def __init__(self, session: AsyncSession):
         self._session = session
 
-    async def get_friend_request_by_id(
-        self, request_id: UUID
-    ) -> Optional[FriendRequest]:
+    async def get_friend_request_by_id(self, request_id: UUID) -> Optional[FriendRequest]:
         result = await self._session.execute(
             select(FriendRequest).where(FriendRequest.id == request_id)
         )
