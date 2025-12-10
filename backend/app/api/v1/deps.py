@@ -1,19 +1,18 @@
 from uuid import UUID
 
-from fastapi import Cookie, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.db import session as session_module
 from app.db.session import get_async_session
 from app.repositories.conversation_repository import ConversationRepository
+from app.repositories.friend_request_repository import FriendRequestRepository
+from app.repositories.friendship_repository import FriendshipRepository
 from app.repositories.message_repository import MessageRepository
 from app.repositories.user_repository import UserRepository
 from app.services.conversation_service import ConversationService
-from app.services.user_service import UserService
-from app.repositories.friend_request_repository import FriendRequestRepository
-from app.repositories.friendship_repository import FriendshipRepository
-from app.utils.jwt_utils import decode_access_token
 from app.services.friend_request_service import FriendRequestService
+from app.services.user_service import UserService
+from app.utils.jwt_utils import decode_access_token
+from fastapi import Cookie, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get_current_user(

@@ -2,15 +2,14 @@ import os
 from contextlib import asynccontextmanager
 
 import uvicorn
+from app.api.v1 import ws
+from app.api.v1.error_handler import register_error_handlers
+from app.api.v1.routes_handler import api_router
+from app.core.config import get_settings
+from app.db.init_db import init_db
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-
-from app.api.v1 import ws
-from app.api.v1.routes_handler import api_router
-from app.api.v1.error_handler import register_error_handlers
-from app.core.config import get_settings
-from app.db.init_db import init_db
 
 settings = get_settings()
 

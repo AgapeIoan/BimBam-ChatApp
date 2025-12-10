@@ -1,12 +1,6 @@
+from app.api.v1.routers import (auth, conversations_router, debug_router,
+                                friend_request, users)
 from fastapi import APIRouter
-
-from app.api.v1.routers import (
-    auth,
-    conversations_router,
-    debug_router,
-    users,
-    friend_request,
-)
 
 api_router = APIRouter()
 
