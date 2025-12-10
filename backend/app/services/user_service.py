@@ -22,7 +22,12 @@ class UserService:
         return await self.user_repo.get_by_username(username)
 
     async def login_or_register(
-        self, provider: str, provider_id: str, email: str, username: str, avatar_url: str | None
+        self,
+        provider: str,
+        provider_id: str,
+        email: str,
+        username: str,
+        avatar_url: str | None,
     ):
         user = await self.user_repo.get_by_provider_id(provider, provider_id)
         if not user:
@@ -45,15 +50,20 @@ class UserService:
     async def update_username(self, user: User, new_username: str) -> str:
         new_username = new_username.strip()
         if len(new_username) < 3 or len(new_username) > 30:
-            raise HTTPException(status_code=400, detail="Username must be at least 3 characters long and alphanumeric")
-        
+            raise HTTPException(
+                status_code=400,
+                detail="Username must be at least 3 characters long and alphanumeric",
+            )
+
         if not re.match("^[a-zA-Z0-9_]+$", new_username):
-            raise HTTPException(status_code=400, detail="Username must be alphanumeric and can contain underscores")
-        
+            raise HTTPException(
+                status_code=400,
+                detail="Username must be alphanumeric and can contain underscores",
+            )
+
         existing_user = await self.user_repo.get_by_username(new_username)
         if existing_user and existing_user.id != user.id:
             raise HTTPException(status_code=400, detail="Username is already taken")
-        
+
         updated_user = await self.user_repo.update_username(user, new_username)
         return updated_user.username
-        
