@@ -61,7 +61,7 @@ async def google_callback(request: Request, session: AsyncSession = Depends(get_
     provider = "google"
     provider_id = user_info["sub"]
     email = user_info["email"]
-    name = user_info.get("name")
+    name = user_info.get("name") # noqa: F841
     avatar_url = user_info.get("picture")
 
     mode = request.session.pop("auth_mode", "login")
