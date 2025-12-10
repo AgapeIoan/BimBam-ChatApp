@@ -13,7 +13,6 @@ from app.services.user_service import UserService
 from app.repositories.friend_request_repository import FriendRequestRepository
 from app.repositories.friendship_repository import FriendshipRepository
 from app.utils.jwt_utils import decode_access_token
-from app.services.user_service import UserService
 from app.services.friend_request_service import FriendRequestService
 
 
@@ -53,12 +52,14 @@ def get_user_service(session: AsyncSession = Depends(get_async_session)) -> User
     repo = UserRepository(session)
     return UserService(repo)
 
+
 async def get_db() -> AsyncSession:
     """
     Provide a database session without wrapping it in an implicit transaction block.
     """
     async with session_module.AsyncSessionLocal() as session:
         yield session
+
 
 def get_conversation_service(
     session: AsyncSession = Depends(get_async_session),
