@@ -29,7 +29,7 @@ class FriendshipService:
         for fr in friends:
             friend = await self.user_repo.get_by_id(fr.friend_id)
             if not friend:
-                continue  
+                continue 
             result.append(
                 {
                     "friend": UserRead.model_validate(friend),
