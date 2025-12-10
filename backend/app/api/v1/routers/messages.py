@@ -6,12 +6,12 @@ from fastapi import APIRouter, Depends
 from app.api.v1.deps import get_current_user, get_message_service
 from app.schemas.message.message_edit import MessageEditCreate
 from app.schemas.message.message_read import MessageRead
-from app.services.message_service import MessageService
 from app.schemas.message_reaction.message_reaction import (
     ReactionCounts,
     ReactionCreate,
     ReactionRead,
 )
+from app.services.message_service import MessageService
 
 router = APIRouter(prefix="/messages", tags=["messages"])
 
