@@ -1,3 +1,4 @@
+from typing import AsyncGenerator
 from uuid import UUID
 
 from fastapi import Cookie, Depends, HTTPException, status
@@ -14,6 +15,7 @@ from app.repositories.user_repository import UserRepository
 from app.services.conversation_service import ConversationService
 from app.services.friend_request_service import FriendRequestService
 from app.services.message_service import MessageService
+from app.services.friendship_service import FriendshipService
 from app.services.user_service import UserService
 from app.utils.jwt_utils import decode_access_token
 
@@ -61,7 +63,7 @@ def get_message_service(session: AsyncSession = Depends(get_async_session)) -> M
     reaction_repo = MessageReactionRepository(session)
     return MessageService(repo, conversation_repo, user_repo, reaction_repo)
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     Provide a database session without wrapping it in an implicit transaction block.
     """
@@ -85,3 +87,8 @@ def get_friend_request_service(
     user_repo = UserRepository(session)
     friendship_repo = FriendshipRepository(session)
     return FriendRequestService(user_repo, friendship_repo, friend_request_repo)
+
+def get_friendship_service(session: AsyncSession = Depends(get_async_session)) -> FriendshipService:
+    friendship_repo = FriendshipRepository(session)
+    user_repo = UserRepository(session)
+    return FriendshipService(friendship_repo, user_repo)
