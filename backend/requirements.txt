@@ -14,6 +14,7 @@ alembic == 1.17.2
 psycopg2-binary == 2.9.11
 PyJWT == 2.10.1
 pytest == 9.0.2
+pytest-cov 
 pytest-asyncio == 1.3.0
 testcontainers == 4.13.3
 fakeredis == 2.31.1
