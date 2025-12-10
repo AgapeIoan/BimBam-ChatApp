@@ -9,7 +9,7 @@ import {
   Clock,
 } from "lucide-react";
 import type { FriendRequestApi } from "../types/friendRequests/friendRequestApi";
-import type { UserSearchResult } from "../types/users/userSearchResult";
+import type { UserSearchResult } from "../types/user/userSearchResult";
 
 
 interface FriendRequestsModalProps {

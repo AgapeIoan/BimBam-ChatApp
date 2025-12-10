@@ -18,5 +18,5 @@ export async function searchUsers(
   const endpoint =
     type === "email" ? "/api/v1/users/search-by-email" : "/api/v1/users/search-by-username";
 
-  return apiClient.get<UserResponse[]>(endpoint, { query: query });
+  return apiClient.get<UserResponse[]>(endpoint, { q: query });
 }
