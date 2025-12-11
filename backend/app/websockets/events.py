@@ -22,6 +22,8 @@ from app.schemas.websocket.message_events import (
 )
 from app.services.message_service import MessageService
 from app.websockets.connection_manager import connection_manager
+from sqlalchemy import select
+from app.models.message import Message
 
 logger = logging.getLogger(__name__)
 MAX_MESSAGE_LENGTH = 4000
