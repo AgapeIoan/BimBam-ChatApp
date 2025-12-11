@@ -69,7 +69,7 @@ class ConnectionManager:
         # Serialize UUIDs and other non-JSON-native types defensively
         serialized = None
         try:
-            serialized = json.dumps(message, default=str)
+            serialized = json.dumps(message, default=str, ensure_ascii=False)
         except TypeError:
             logger.warning("Failed to serialize message for user %s", user_id)
             return False

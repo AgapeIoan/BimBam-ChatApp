@@ -21,7 +21,11 @@ export function MessageItem({ message, onEdit, onReact }: MessageItemProps) {
   const [text, setText] = useState(message.text || '');
   const [showPicker, setShowPicker] = useState(false);
 
-  const reactions: Reaction[] = message.reactions || [];
+  const reactions: Reaction[] = Array.isArray(message.reactions)
+    ? message.reactions
+    : message.reactions
+    ? Object.keys(message.reactions).map((emoji) => ({ emoji, count: message.reactions[emoji] }))
+    : [];
 
   const createdAt = useMemo(
     () => (message.timestamp ? new Date(message.timestamp) : null),

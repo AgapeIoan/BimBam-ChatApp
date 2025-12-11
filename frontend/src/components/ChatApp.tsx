@@ -451,17 +451,27 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
     const pendingInfo = correlationId ? pendingRef.current[correlationId] : undefined;
     const targetConv = convId || pendingInfo?.conversationId;
 
-    if (!targetConv) return;
-
     const realMessageId = ackMsg?.messageId || data?.messageId;
     const status: Message['status'] =
       data?.status === 'ok' ? (delivered ? 'delivered' : 'sent') : 'failed';
 
     setMessages((prev) => {
-      const conv = prev[targetConv] || [];
+      // resolve conversation for reaction acks where convId is missing
+      let resolvedConv = targetConv;
+      if (!resolvedConv && realMessageId) {
+        for (const cid of Object.keys(prev)) {
+          if (prev[cid]?.some((m) => String(m.id) === String(realMessageId))) {
+            resolvedConv = cid;
+            break;
+          }
+        }
+      }
+      if (!resolvedConv) return prev;
+
+      const conv = prev[resolvedConv] || [];
       const updated: Message[] = conv.map((msg) => {
         const matchesTemp = pendingInfo && msg.id === pendingInfo.tempId;
-        const matchesReal = realMessageId && msg.id === realMessageId;
+        const matchesReal = realMessageId && String(msg.id) === String(realMessageId);
         if (!matchesTemp && !matchesReal) return msg;
 
         const reactionsFromCounts = ackMsg?.counts
@@ -482,20 +492,22 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
           reactions: reactionsFromCounts,
         };
       }) as Message[];
-      return { ...prev, [targetConv]: updated };
+      return { ...prev, [resolvedConv]: updated };
     });
 
-    setFriendsList((prev) =>
-      prev.map((c) =>
-        c.id === targetConv
-          ? {
-              ...c,
-              lastMessage: ackMsg?.content ?? c.lastMessage,
-              timestamp: formatTimeLabel(ackMsg?.createdAt || new Date()),
-            }
-          : c
-      )
-    );
+    if (targetConv) {
+      setFriendsList((prev) =>
+        prev.map((c) =>
+          c.id === targetConv
+            ? {
+                ...c,
+                lastMessage: ackMsg?.content ?? c.lastMessage,
+                timestamp: formatTimeLabel(ackMsg?.createdAt || new Date()),
+              }
+            : c
+        )
+      );
+    }
 
     if (correlationId) {
       const { [correlationId]: _, ...rest } = pendingRef.current;
@@ -765,16 +777,23 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
         }
         const body = await res.json();
         const items = (body?.messages || body || []) as any[];
-        const normalized: Message[] = items.map((m) => ({
-          id: String(m.id || m.messageId),
-          conversationId: String(m.conversationId || conversationId),
-          text: m.content || '',
-          sender: String(m.senderId || m.sender_id || '') === currentUserRef.current ? 'me' : 'them',
-          timestamp: m.createdAt ? new Date(m.createdAt) : new Date(),
-          status: m.read ? 'read' : m.delivered ? 'delivered' : 'sent',
-          editedAt: m.editedAt || null,
-          editedById: m.editedById || null,
-        }));
+        const normalized: Message[] = items.map((m) => {
+          const counts = m.reactions || m.counts;
+          const reactions = counts
+            ? Object.keys(counts).map((emoji) => ({ emoji, count: counts[emoji] }))
+            : undefined;
+          return {
+            id: String(m.id || m.messageId),
+            conversationId: String(m.conversationId || conversationId),
+            text: m.content || '',
+            sender: String(m.senderId || m.sender_id || '') === currentUserRef.current ? 'me' : 'them',
+            timestamp: m.createdAt ? new Date(m.createdAt) : new Date(),
+            status: m.read ? 'read' : m.delivered ? 'delivered' : 'sent',
+            editedAt: m.editedAt || null,
+            editedById: m.editedById || null,
+            reactions,
+          };
+        });
 
         setMessages((prev) => {
           const existing = prev[conversationId] || [];
