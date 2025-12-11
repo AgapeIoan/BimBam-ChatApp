@@ -156,7 +156,7 @@ export function ChatSidebar({
               {contact.online && (
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
               )}
-              {isCollapsed && contact.unread && (
+              {isCollapsed && (contact.unread ?? 0) > 0 && (
                 <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
                   {contact.unread}
                 </div>
@@ -172,7 +172,7 @@ export function ChatSidebar({
                 </div>
                 <div className="flex items-center justify-between">
                   <p className="text-gray-600 text-sm truncate">{contact.lastMessage}</p>
-                  {contact.unread && (
+                  {(contact.unread ?? 0) > 0 && (
                     <div className="flex-shrink-0 ml-2 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
                       {contact.unread}
                     </div>

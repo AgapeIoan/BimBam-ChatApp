@@ -159,6 +159,7 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
   const pendingRef = useRef<Record<string, { conversationId: string; tempId: string }>>({});
   const selectedConversationRef = useRef<string | null>(null);
   const currentUserRef = useRef<string>(currentUser.id);
+  const presenceMapRef = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
     selectedConversationRef.current = selectedContactId;
@@ -176,12 +177,12 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
       });
       if (!res.ok) {
         console.warn('Failed to load conversations', res.status);
-        return [];
+        return null;
       }
       return (await res.json()) as ConversationPreviewResponse[];
     } catch (err) {
       console.error('Unable to fetch conversations', err);
-      return [];
+      return null;
     }
   }, []);
 
@@ -193,19 +194,19 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
       });
       if (!res.ok) {
         console.warn('Failed to load friends', res.status);
-        return [];
+        return null;
       }
       const data = await res.json();
       return data as any[];
     } catch (err) {
       console.error('Unable to fetch friends', err);
-      return [];
+      return null;
     }
   }, []);
 
-  const mergeFriendsAndConversations = useCallback(
-    (friendsData: any[], previews: ConversationPreviewResponse[]) => {
-      const prevById = new Map<string, Contact>(friendsList.map((c) => [c.id, c]));
+  const mergeFriendsAndConversations = useCallback((friendsData: any[], previews: ConversationPreviewResponse[]) => {
+    setFriendsList((prev) => {
+      const prevById = new Map<string, Contact>(prev.map((c) => [c.id, c]));
       const convByUserId = new Map<string, ConversationPreviewResponse>();
       previews.forEach((p) => {
         p.other_users?.forEach((u) => convByUserId.set(String(u.id), p));
@@ -245,19 +246,53 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
         }
       });
 
-      const merged = Array.from(contactsByKey.values());
-      setFriendsList(merged);
+      const merged = Array.from(contactsByKey.values()).map((c) => {
+        const presence = presenceMapRef.current[c.otherUserId || ""];
+        return presence === undefined ? c : { ...c, online: presence };
+      });
+      return merged;
+    });
+  }, []);
+
+  const loadingContactsRef = useRef(false);
+  const lastContactsLoadRef = useRef(0);
+
+  const loadContacts = useCallback(
+    async (options?: { force?: boolean }) => {
+      const now = Date.now();
+      if (loadingContactsRef.current) {
+        // eslint-disable-next-line no-console
+        console.log('loadContacts skipped (already loading)');
+        return;
+      }
+      if (!options?.force && now - lastContactsLoadRef.current < 3000) {
+        // eslint-disable-next-line no-console
+        console.log('loadContacts skipped (throttled)');
+        return;
+      }
+      loadingContactsRef.current = true;
+      try {
+        // eslint-disable-next-line no-console
+        console.log('loadContacts fetch start');
+        const [friendsData, previews] = await Promise.all([fetchFriends(), refreshConversations()]);
+        if (friendsData === null && previews === null) {
+          // eslint-disable-next-line no-console
+          console.warn('loadContacts skipped update due to fetch errors');
+          return;
+        }
+        mergeFriendsAndConversations(friendsData ?? [], previews ?? []);
+      } finally {
+        loadingContactsRef.current = false;
+        lastContactsLoadRef.current = Date.now();
+        // eslint-disable-next-line no-console
+        console.log('loadContacts fetch end');
+      }
     },
-    [friendsList]
+    [fetchFriends, mergeFriendsAndConversations, refreshConversations]
   );
 
-  const loadContacts = useCallback(async () => {
-    const [friendsData, previews] = await Promise.all([fetchFriends(), refreshConversations()]);
-    mergeFriendsAndConversations(friendsData, previews);
-  }, [fetchFriends, mergeFriendsAndConversations, refreshConversations]);
-
   useEffect(() => {
-    loadContacts();
+    loadContacts({ force: true });
   }, [loadContacts]);
 
   // Periodically refresh friends/conversations so new accepts appear for both parties
@@ -525,9 +560,10 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
       if (!userId) return;
 
       let seen = false;
+      presenceMapRef.current = { ...presenceMapRef.current, [userId]: isOnline };
       setFriendsList((prev) =>
         prev.map((c) => {
-          if (c.otherUserId === userId) {
+          if (c.otherUserId === userId || c.id === userId) {
             seen = true;
             return { ...c, online: isOnline };
           }
