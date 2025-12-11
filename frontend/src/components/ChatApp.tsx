@@ -74,6 +74,7 @@ export interface UserSearchResult {
   username: string;
   email: string;
   avatar: string;
+  avatarUrl?: string | null;
   isFriend: boolean;
   hasPendingRequest: boolean;
 }
@@ -1100,12 +1101,14 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
           const hasPendingRequest =
             sentRequests.some((r) => r.toEmail === u.email || r.toUserId === String(u.id)) ||
             incomingRequests.some((r) => r.fromEmail === u.email || r.fromUserId === String(u.id));
+          const avatarUrl = u.avatarUrl || u.avatar_url || null;
           return {
             id: String(u.id),
             name: u.username || u.email,
             username: u.username || '',
             email: u.email || '',
             avatar: initials(u.username || u.email || 'U'),
+            avatarUrl,
             isFriend,
             hasPendingRequest,
           };

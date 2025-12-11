@@ -62,6 +62,7 @@ export function FriendRequestsModal({
   const [searchResults, setSearchResults] = useState<
     UserSearchResult[]
   >([]);
+  const [avatarErrors, setAvatarErrors] = useState<Record<string, boolean>>({});
 
   if (!isOpen) return null;
 
@@ -225,8 +226,22 @@ export function FriendRequestsModal({
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white flex-shrink-0">
-                          {user.avatar}
+                        <div className="relative w-12 h-12 flex-shrink-0">
+                          {user.avatarUrl && !avatarErrors[user.id] ? (
+                            <img
+                              src={user.avatarUrl}
+                              alt={user.name}
+                              className="w-12 h-12 rounded-full object-cover"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).style.display = "none";
+                                setAvatarErrors((prev) => ({ ...prev, [user.id]: true }));
+                              }}
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white">
+                              {user.avatar}
+                            </div>
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-gray-900 truncate">
@@ -295,8 +310,10 @@ export function FriendRequestsModal({
                     className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white">
-                        {request.fromAvatar}
+                      <div className="relative w-12 h-12 flex-shrink-0">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white">
+                          {request.fromAvatar}
+                        </div>
                       </div>
                       <div>
                         <p className="text-gray-900 truncate">
@@ -356,8 +373,10 @@ export function FriendRequestsModal({
                     className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white flex-shrink-0">
-                        {request.toAvatar}
+                      <div className="relative w-12 h-12 flex-shrink-0">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white flex-shrink-0">
+                          {request.toAvatar}
+                        </div>
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-gray-900 truncate">
@@ -398,6 +417,7 @@ export interface UserSearchResult {
   username: string;
   email: string;
   avatar: string;
+  avatarUrl?: string | null;
   name: string;
   isFriend: boolean;
   hasPendingRequest: boolean;
