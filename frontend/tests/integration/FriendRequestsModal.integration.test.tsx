@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, jest } from "@jest/globals";
+import  "@testing-library/jest-dom";
 
 import {
   FriendRequestsModal,
@@ -51,7 +52,6 @@ describe("FriendRequestsModal integration-ish", () => {
   it("searches users via API and sends request, updating UI", async () => {
     const user = userEvent.setup();
 
-    // mock searchUsers → returnează un user
     (userService.searchUsers as jest.Mock).mockResolvedValue([
       {
         id: "user-1",
@@ -61,7 +61,6 @@ describe("FriendRequestsModal integration-ish", () => {
       },
     ]);
 
-    // mock sendFriendRequest → returnează un FriendRequestApi fake
     (friendRequestsService.sendFriendRequest as jest.Mock).mockResolvedValue({
       id: "req-123",
       status: "pending",
@@ -89,7 +88,7 @@ describe("FriendRequestsModal integration-ish", () => {
       expect(userService.searchUsers).toHaveBeenCalledWith("miruna", "username");
     });
 
-    // După mock-ul de search, UI ar trebui să arate userul
+    
     expect(screen.getByText("@miruna")).toBeInTheDocument();
     expect(screen.getByText("miruna@example.com")).toBeInTheDocument();
 

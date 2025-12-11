@@ -14,7 +14,6 @@ export function AccountModal({ isOpen, onClose, account, onSave }: Readonly<Acco
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState('');
 
-  console.log('AccountModal received account:', account);
 
   useEffect(() => {
     if (isOpen) {
