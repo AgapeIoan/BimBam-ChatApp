@@ -74,6 +74,7 @@ export interface UserSearchResult {
   username: string;
   email: string;
   avatar: string;
+  avatarUrl?: string | null;
   isFriend: boolean;
   hasPendingRequest: boolean;
 }
@@ -172,6 +173,7 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
   const [showAccount, setShowAccount] = useState(false);
   const [friendsList, setFriendsList] = useState<Contact[]>([]);
   const [friendItems, setFriendItems] = useState<FriendListItem[]>([]);
+  const [typingUsers, setTypingUsers] = useState<Record<string, number>>({});
   const [userAccount, setUserAccount] = useState<UserAccountDetails>({
     id: currentUser.id,
     username: currentUser.username || '',
@@ -530,7 +532,7 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
                 emoji,
                 count: ackMsg.counts[emoji],
               })),
-              targetConv
+              targetConv || ''
             )
           : msg.reactions;
 
@@ -673,6 +675,21 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
     [loadContacts]
   );
 
+  // Prune expired typing indicators periodically
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = Date.now();
+      setTypingUsers((prev) => {
+        const next: Record<string, number> = {};
+        Object.entries(prev).forEach(([uid, expiry]) => {
+          if (expiry > now) next[uid] = expiry;
+        });
+        return next;
+      });
+    }, 2000);
+    return () => clearInterval(timer);
+  }, []);
+
   useEffect(() => {
     const token = parseCookieToken();
     ws.connect(token).catch((err) => console.warn('ws connect error', err));
@@ -692,8 +709,21 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
       } else if (t === 'presence') {
         handlePresence(data);
       } else if (t === 'typing') {
-        // eslint-disable-next-line no-console
-        console.log('typing event', data);
+        const fromId = String(data.fromUserId || data.from_user_id || '');
+        const toId = String(data.toUserId || data.to_user_id || '');
+        const convId = String(data.conversationId || data.conversation_id || '');
+        const isTyping = Boolean(data.isTyping ?? data.is_typing);
+        // For DMs: must be addressed to me; for groups: must match selected conversation
+        const isDmForMe = toId && toId === currentUserRef.current;
+        const isGroupForConv = convId && convId === selectedConversationRef.current;
+        if (!fromId || (!isDmForMe && !isGroupForConv)) return;
+        setTypingUsers((prev) => {
+          if (isTyping) {
+            return { ...prev, [fromId]: Date.now() + 4000 };
+          }
+          const { [fromId]: _, ...rest } = prev;
+          return rest;
+        });
       } else if (t === 'error') {
         console.warn('ws error', data);
       }
@@ -854,6 +884,30 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
     const action = isMine ? 'add' : 'remove';
     ws.send({ type: 'message_reaction', data: { messageId, emoji, action } });
   };
+
+  const sendTyping = useCallback(
+    (isTyping: boolean) => {
+      if (!selectedContactId) return;
+      const contact = friendsList.find((c) => c.id === selectedContactId);
+      if (!contact) return;
+      const basePayload: any = {
+        fromUserId: currentUserRef.current,
+        isTyping,
+      };
+      if (contact.isGroup) {
+        basePayload.conversationId = selectedContactId;
+      } else if (contact.otherUserId) {
+        basePayload.toUserId = contact.otherUserId;
+      } else {
+        return;
+      }
+      ws.send({
+        type: 'typing',
+        data: basePayload,
+      });
+    },
+    [friendsList, selectedContactId]
+  );
 
   const loadHistory = useCallback(
     async (conversationId: string) => {
@@ -1100,12 +1154,14 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
           const hasPendingRequest =
             sentRequests.some((r) => r.toEmail === u.email || r.toUserId === String(u.id)) ||
             incomingRequests.some((r) => r.fromEmail === u.email || r.fromUserId === String(u.id));
+          const avatarUrl = u.avatarUrl || u.avatar_url || null;
           return {
             id: String(u.id),
             name: u.username || u.email,
             username: u.username || '',
             email: u.email || '',
             avatar: initials(u.username || u.email || 'U'),
+            avatarUrl,
             isFriend,
             hasPendingRequest,
           };
@@ -1143,6 +1199,22 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
         onReact={handleReact}
+        typingLabel={
+          selectedContact
+            ? selectedContact.isGroup
+              ? Object.entries(typingUsers)
+                  .filter(([uid, expiry]) => uid !== currentUserRef.current && expiry > Date.now())
+                  .length > 0
+                ? 'Someone is typing...'
+                : undefined
+              : selectedContact.otherUserId &&
+                typingUsers[selectedContact.otherUserId] &&
+                typingUsers[selectedContact.otherUserId] > Date.now()
+              ? `${selectedContact.name} is typing...`
+              : undefined
+            : undefined
+        }
+        onTyping={sendTyping}
       />
       <FriendRequestsModal
         isOpen={showFriendRequests}

@@ -26,6 +26,7 @@ export function GroupModal({
     Set<string>
   >(new Set(initialMemberIds));
   const [searchQuery, setSearchQuery] = useState("");
+  const [avatarErrors, setAvatarErrors] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (isOpen) {
@@ -155,7 +156,7 @@ export function GroupModal({
               ) : (
                 filteredFriends.map((friend) => {
                   const isSelected = selectedFriends.has(friend.friend.id);
-                  const avatarUrl = friend.friend.avatarUrl || friend.friend.avatar_url || undefined;
+                  const avatarUrl = friend.friend.avatarUrl || undefined;
                   const displayName = friend.friend.username || friend.friend.email || "User";
                   const initials = displayName
                     .split(/[\s@._-]+/)
@@ -176,13 +177,14 @@ export function GroupModal({
                     >
                       {/* Avatar + Info */}
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        {avatarUrl ? (
+                        {avatarUrl && !avatarErrors[friend.friend.id] ? (
                           <img
                             src={avatarUrl}
                             alt={displayName}
                             className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).style.display = "none";
+                              setAvatarErrors((prev) => ({ ...prev, [friend.friend.id]: true }));
                             }}
                           />
                         ) : (
