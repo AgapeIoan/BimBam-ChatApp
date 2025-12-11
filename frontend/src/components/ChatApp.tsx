@@ -187,7 +187,7 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
 
   const fetchFriends = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/friends`, {
+      const res = await fetch(`${API_BASE}/api/v1/friends/`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -205,6 +205,7 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
 
   const mergeFriendsAndConversations = useCallback(
     (friendsData: any[], previews: ConversationPreviewResponse[]) => {
+      const prevById = new Map<string, Contact>(friendsList.map((c) => [c.id, c]));
       const convByUserId = new Map<string, ConversationPreviewResponse>();
       previews.forEach((p) => {
         p.other_users?.forEach((u) => convByUserId.set(String(u.id), p));
@@ -215,6 +216,7 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
         const friendId = String(friendUser.id || '');
         const conv = convByUserId.get(friendId);
         const name = friendUser.username || friendUser.email || 'Friend';
+        const existing = prevById.get(conv ? String(conv.id) : friendId);
         return {
           id: conv ? String(conv.id) : friendId,
           conversationId: conv ? String(conv.id) : undefined,
@@ -223,7 +225,7 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
           lastMessage: conv?.last_message || '',
           timestamp: formatTimeLabel(conv?.last_message_at),
           unread: conv?.unread_count ?? f.unread_count ?? 0,
-          online: Boolean(f.is_online),
+          online: Boolean(f.is_online) || Boolean(existing?.online),
           isFriend: true,
           otherUserId: friendId,
           username: friendUser.username,
@@ -235,7 +237,10 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
       contactsFromFriends.forEach((c) => contactsByKey.set(c.id, c));
       previews.forEach((p) => {
         const mapped = mapPreviewToContact(p);
-        if (!contactsByKey.has(mapped.id)) {
+        const existing = contactsByKey.get(mapped.id);
+        if (existing) {
+          contactsByKey.set(mapped.id, { ...mapped, online: existing.online || mapped.online });
+        } else {
           contactsByKey.set(mapped.id, mapped);
         }
       });
@@ -243,7 +248,7 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
       const merged = Array.from(contactsByKey.values());
       setFriendsList(merged);
     },
-    []
+    [friendsList]
   );
 
   const loadContacts = useCallback(async () => {
@@ -253,6 +258,14 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
 
   useEffect(() => {
     loadContacts();
+  }, [loadContacts]);
+
+  // Periodically refresh friends/conversations so new accepts appear for both parties
+  useEffect(() => {
+    const timer = setInterval(() => {
+      loadContacts();
+    }, 15000);
+    return () => clearInterval(timer);
   }, [loadContacts]);
 
   const refreshFriendRequests = useCallback(async () => {
