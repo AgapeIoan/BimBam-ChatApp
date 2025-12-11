@@ -8,7 +8,7 @@ import {
   type FriendRequest,
   type SentRequest,
   type UserSearchResult,
-} from "../src/components/FriendRequestsModal";
+} from "../../src/components/FriendRequestsModal";
 
 function createBaseProps(
   overrides: Partial<React.ComponentProps<typeof FriendRequestsModal>> = {}
