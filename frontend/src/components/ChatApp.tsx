@@ -160,6 +160,7 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
   const selectedConversationRef = useRef<string | null>(null);
   const currentUserRef = useRef<string>(currentUser.id);
   const presenceMapRef = useRef<Record<string, boolean>>({});
+  const historyAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     selectedConversationRef.current = selectedContactId;
@@ -708,18 +709,6 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
     []
   );
 
-  const handleSelectContact = useCallback(
-    async (id: string) => {
-      const contact = friendsList.find((c) => c.id === id || c.otherUserId === id);
-      if (!contact) return;
-      const convId = await ensureConversationForContact(contact);
-      if (convId) {
-        setSelectedContactId(convId);
-      }
-    },
-    [ensureConversationForContact, friendsList]
-  );
-
   const handleEditMessage = (messageId: string, newText: string) => {
     if (!selectedContactId) return;
     setMessages((prev) => ({
@@ -749,6 +738,88 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
 
     ws.send({ type: 'message_reaction', data: { messageId, emoji, action: 'add' } });
   };
+
+  const loadHistory = useCallback(
+    async (conversationId: string) => {
+      if (!conversationId) return;
+      // cancel any in-flight history fetch
+      if (historyAbortRef.current) {
+        historyAbortRef.current.abort();
+      }
+      const controller = new AbortController();
+      historyAbortRef.current = controller;
+      try {
+        // eslint-disable-next-line no-console
+        console.log('history: fetching', conversationId);
+        const res = await fetch(
+          `${API_BASE}/api/v1/conversations/${conversationId}/messages?limit=50`,
+          {
+            method: 'GET',
+            credentials: 'include',
+            signal: controller.signal,
+          }
+        );
+        if (!res.ok) {
+          console.warn('Failed to load history', res.status);
+          return;
+        }
+        const body = await res.json();
+        const items = (body?.messages || body || []) as any[];
+        const normalized: Message[] = items.map((m) => ({
+          id: String(m.id || m.messageId),
+          conversationId: String(m.conversationId || conversationId),
+          text: m.content || '',
+          sender: String(m.senderId || m.sender_id || '') === currentUserRef.current ? 'me' : 'them',
+          timestamp: m.createdAt ? new Date(m.createdAt) : new Date(),
+          status: m.read ? 'read' : m.delivered ? 'delivered' : 'sent',
+          editedAt: m.editedAt || null,
+          editedById: m.editedById || null,
+        }));
+
+        setMessages((prev) => {
+          const existing = prev[conversationId] || [];
+          const merged = new Map<string, Message>();
+          [...existing, ...normalized].forEach((msg) => {
+            merged.set(String(msg.id), msg);
+          });
+          const sorted = Array.from(merged.values()).sort(
+            (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+          );
+          return { ...prev, [conversationId]: sorted };
+        });
+      } catch (err) {
+        if ((err as any)?.name !== 'AbortError') {
+          console.error('History fetch failed', err);
+        }
+      }
+    },
+    [setMessages]
+  );
+
+  useEffect(() => {
+    if (selectedContactId) {
+      loadHistory(selectedContactId);
+    }
+    // cleanup any inflight history when unmounting
+    return () => {
+      if (historyAbortRef.current) {
+        historyAbortRef.current.abort();
+      }
+    };
+  }, [loadHistory, selectedContactId]);
+
+  const handleSelectContact = useCallback(
+    async (id: string) => {
+      const contact = friendsList.find((c) => c.id === id || c.otherUserId === id);
+      if (!contact) return;
+      const convId = await ensureConversationForContact(contact);
+      if (convId) {
+        setSelectedContactId(convId);
+        loadHistory(convId);
+      }
+    },
+    [ensureConversationForContact, friendsList, loadHistory]
+  );
 
   const handleAcceptRequest = async (requestId: string) => {
     try {
