@@ -27,7 +27,7 @@ export function GroupModal({
   >(new Set(initialMemberIds));
   const [searchQuery, setSearchQuery] = useState("");
 
-    useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setGroupName(initialName);
@@ -113,7 +113,7 @@ export function GroupModal({
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
               placeholder="Enter group name"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-12 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -128,22 +128,22 @@ export function GroupModal({
           )}
 
           {/* Search + Friends list */}
-          <div>
-            <label className="block text-sm text-gray-700 mb-2">
+          <div className="space-y-4">
+            <label className="block text-sm text-gray-700 mb-4">
               {mode === "create" ? "Add Members" : "Edit Members"}
             </label>
             <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search friends..."
-                className="w-full px-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full h-12 pl-11 pr-4 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
-            <div className="max-h-72 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50/70 p-2 space-y-3 scrollbar-hide">
+            <div className="max-h-72 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50/70 p-3 space-y-3 scrollbar-hide">
               {filteredFriends.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gray-500">
