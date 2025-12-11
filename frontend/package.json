@@ -9,7 +9,6 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
   },
@@ -37,8 +36,6 @@
     "@types/react-dom": "^19.2.3",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^5.1.1",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.2.0",
     "babel-jest": "^30.2.0",
     "babel-plugin-react-compiler": "^1.0.0",
     "babel-plugin-transform-vite-meta-env": "^1.0.3",
