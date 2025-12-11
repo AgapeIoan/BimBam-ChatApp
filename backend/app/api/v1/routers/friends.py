@@ -1,14 +1,19 @@
 from typing import List
 from uuid import UUID
 
-from app.api.v1.deps import (get_async_session, get_conversation_service,
-                             get_current_user, get_friendship_service)
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from app.api.v1.deps import (
+    get_async_session,
+    get_conversation_service,
+    get_current_user,
+    get_friendship_service,
+)
 from app.models.user import User
 from app.schemas.conversation.conversation_read import ConversationRead
 from app.schemas.friendship.friendship import FriendListItem
 from app.services.conversation_service import ConversationService
 from app.services.friendship_service import FriendshipService
-from fastapi import APIRouter, Depends, HTTPException, status
 
 router = APIRouter(prefix="/friends", tags=["friends"])
 

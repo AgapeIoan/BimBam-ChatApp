@@ -1,14 +1,14 @@
 from typing import List, Optional
 from uuid import UUID
 
-from app.api.v1.deps import (get_conversation_service, get_current_user,
-                             get_message_service)
+from fastapi import APIRouter, Depends, Query
+
+from app.api.v1.deps import get_conversation_service, get_current_user, get_message_service
 from app.models.user import User
 from app.schemas.conversation.conversation_preview import ConversationPreview
 from app.schemas.message.message_page import MessagePage
 from app.services.conversation_service import ConversationService
 from app.services.message_service import MessageService
-from fastapi import APIRouter, Depends, Query
 
 router = APIRouter(
     prefix="/conversations",

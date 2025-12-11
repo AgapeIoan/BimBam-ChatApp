@@ -2,13 +2,14 @@ import logging
 from typing import Optional
 from uuid import UUID
 
-import app.db.session as session_module
 import jwt
-from app.core.config import get_settings
-from app.repositories.user_repository import UserRepository
 from fastapi import WebSocket, status
 from fastapi.exceptions import WebSocketException
 from jwt import InvalidTokenError
+
+import app.db.session as session_module
+from app.core.config import get_settings
+from app.repositories.user_repository import UserRepository
 
 logger = logging.getLogger(__name__)
 settings = get_settings()

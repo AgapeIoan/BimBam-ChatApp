@@ -2,8 +2,9 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from app.schemas.user.user_read import UserRead
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.schemas.user.user_read import UserRead
 
 
 class ConversationPreview(BaseModel):

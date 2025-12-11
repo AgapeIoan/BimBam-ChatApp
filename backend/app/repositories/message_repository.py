@@ -2,11 +2,12 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 
-from app.models.message import Message
-from app.models.message_edit import MessageEdit
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
+from app.models.message import Message
+from app.models.message_edit import MessageEdit
 
 
 class MessageRepository:

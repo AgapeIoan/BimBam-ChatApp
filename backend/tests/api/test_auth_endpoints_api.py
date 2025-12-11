@@ -1,6 +1,7 @@
+from fastapi.testclient import TestClient
+
 from app.main import app
 from app.utils.jwt_utils import create_access_token
-from fastapi.testclient import TestClient
 from tests.helpers import _find_route_path
 
 AUTH_ME_PATH = _find_route_path("get_me", method="GET")

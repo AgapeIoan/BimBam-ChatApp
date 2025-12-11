@@ -5,14 +5,15 @@ from collections import deque
 from contextlib import suppress
 from uuid import UUID, uuid4
 
+from fastapi import APIRouter, Depends, WebSocket
+from starlette.websockets import WebSocketDisconnect
+
 from app.api.deps.websocket_auth import websocket_auth
 from app.schemas.websocket.envelope import EventEnvelope
 from app.schemas.websocket.event_types import WebSocketEventType
 from app.services.presence_service import PresenceService
 from app.websockets.connection_manager import connection_manager
 from app.websockets.events import dispatch_event, send_error
-from fastapi import APIRouter, Depends, WebSocket
-from starlette.websockets import WebSocketDisconnect
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

@@ -1,10 +1,11 @@
 from typing import List
 
+from fastapi import APIRouter, Depends, Query
+
 from app.api.v1.deps import get_current_user, get_user_service
 from app.models.user import User
 from app.schemas.user.user_response import UserResponse
 from app.services.user_service import UserService
-from fastapi import APIRouter, Depends, Query
 
 router = APIRouter(prefix="/users", tags=["users"])
 

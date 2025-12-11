@@ -2,6 +2,7 @@ from typing import Dict, Tuple, cast
 from uuid import UUID
 
 import pytest
+
 from app.repositories.friendship_repository import FriendshipRepository
 from app.repositories.user_repository import UserRepository
 from app.services.friendship_service import FriendshipService

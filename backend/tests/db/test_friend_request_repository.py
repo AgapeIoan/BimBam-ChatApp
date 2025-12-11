@@ -1,7 +1,8 @@
 import pytest
+from sqlalchemy.exc import IntegrityError
+
 from app.repositories.friend_request_repository import FriendRequestRepository
 from app.repositories.user_repository import UserRepository
-from sqlalchemy.exc import IntegrityError
 
 
 @pytest.mark.asyncio

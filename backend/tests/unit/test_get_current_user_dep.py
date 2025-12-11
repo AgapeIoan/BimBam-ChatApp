@@ -2,9 +2,10 @@ from unittest.mock import MagicMock
 from uuid import UUID
 
 import pytest
-from app.api.v1 import deps as deps_module
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.v1 import deps as deps_module
 
 
 def make_fake_session():
