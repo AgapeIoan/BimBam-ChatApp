@@ -156,7 +156,7 @@ export function GroupModal({
               ) : (
                 filteredFriends.map((friend) => {
                   const isSelected = selectedFriends.has(friend.friend.id);
-                  const avatarUrl = friend.friend.avatarUrl || friend.friend.avatar_url || undefined;
+                  const avatarUrl = friend.friend.avatarUrl || undefined;
                   const displayName = friend.friend.username || friend.friend.email || "User";
                   const initials = displayName
                     .split(/[\s@._-]+/)

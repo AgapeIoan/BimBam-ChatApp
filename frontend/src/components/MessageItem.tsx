@@ -78,7 +78,7 @@ export function MessageItem({ message, onEdit, onReact, showSenderName = false }
                 src={message.senderAvatarUrl}
                 alt={displayName}
                 className="w-full h-full rounded-full object-cover"
-                onError={(e) => {
+                onError={() => {
                   setAvatarError(true);
                 }}
               />
