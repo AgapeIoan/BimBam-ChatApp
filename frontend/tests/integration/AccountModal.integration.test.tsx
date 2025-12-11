@@ -45,7 +45,7 @@ function Wrapper() {
   );
 }
 
-describe("AccountModal integration-ish", () => {
+describe("AccountModal integration", () => {
   it("updates parent account state via onSave and reflects changes in parent UI", async () => {
     const user = userEvent.setup();
 
