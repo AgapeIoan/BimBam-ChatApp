@@ -11,17 +11,22 @@ interface MessageItemProps {
   message: any;
   onEdit: (messageId: string, newText: string) => void;
   onReact: (messageId: string, emoji: string) => void;
+  showSenderName?: boolean;
 }
 
 const formatTime = (d: Date | null) =>
   d ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
-export function MessageItem({ message, onEdit, onReact }: MessageItemProps) {
+export function MessageItem({ message, onEdit, onReact, showSenderName = false }: MessageItemProps) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(message.text || '');
   const [showPicker, setShowPicker] = useState(false);
 
-  const reactions: Reaction[] = message.reactions || [];
+  const reactions: Reaction[] = Array.isArray(message.reactions)
+    ? message.reactions
+    : message.reactions
+    ? Object.keys(message.reactions).map((emoji) => ({ emoji, count: message.reactions[emoji] }))
+    : [];
 
   const createdAt = useMemo(
     () => (message.timestamp ? new Date(message.timestamp) : null),
@@ -54,6 +59,18 @@ export function MessageItem({ message, onEdit, onReact }: MessageItemProps) {
       >
         {!editing ? (
           <>
+            {showSenderName && message.sender !== 'me' && message.senderName && (
+              <div className="flex items-center gap-2 mb-1">
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    message.senderOnline ? 'bg-green-400' : 'bg-gray-400'
+                  }`}
+                />
+                <span className="text-[11px] text-gray-400 uppercase tracking-wide">
+                  {message.senderName}
+                </span>
+              </div>
+            )}
             <p className="leading-relaxed">
               {message.text}
               {isEdited && (

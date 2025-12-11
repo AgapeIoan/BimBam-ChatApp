@@ -63,7 +63,11 @@ export function ChatView({ contact, messages, onSendMessage, onEditMessage, onRe
           </div>
           <div>
             <h2 className="text-gray-900">{contact.name}</h2>
-            <p className="text-gray-500 text-sm">{contact.online ? 'Active now' : 'Offline'}</p>
+            {!contact.isGroup && (
+              <p className="text-gray-500 text-sm">
+                {contact.online ? 'Active now' : 'Offline'}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -74,6 +78,7 @@ export function ChatView({ contact, messages, onSendMessage, onEditMessage, onRe
           <MessageItem
             key={message.id}
             message={message}
+            showSenderName={Boolean(contact?.isGroup)}
             onEdit={(id, newText) => onEditMessage?.(id, newText)}
             onReact={(id, emoji) => onReact?.(id, emoji)}
           />

@@ -147,8 +147,11 @@ class MessageService:
             limit=limit,
             before_id=before_id,
         )
-
-        return [MessageRead.model_validate(m) for m in messages]
+        counts = await self.reaction_repo.get_counts_for_messages([m.id for m in messages])
+        return [
+            MessageRead.model_validate(m).model_copy(update={"reactions": counts.get(m.id, {})})
+            for m in messages
+        ]
 
     # for infinite scroll UI
     async def get_message_page(
@@ -165,6 +168,7 @@ class MessageService:
             limit=limit,
             before_id=before_id,
         )
+        counts = await self.reaction_repo.get_counts_for_messages([m.id for m in messages])
 
         if not messages:
             return MessagePage(
@@ -189,7 +193,10 @@ class MessageService:
 
         return MessagePage(
             conversation_id=conversation_id,
-            messages=[MessageRead.model_validate(m) for m in messages],
+            messages=[
+                MessageRead.model_validate(m).model_copy(update={"reactions": counts.get(m.id, {})})
+                for m in messages
+            ],
             has_more=has_more,
             next_before_id=next_before_id,
         )

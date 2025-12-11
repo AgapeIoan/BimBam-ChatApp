@@ -3,7 +3,9 @@ import { ChatSidebar } from './ChatSidebar';
 import { ChatView } from './ChatView';
 import { FriendRequestsModal } from './FriendRequestsModal';
 import { AccountModal } from './AccountModal';
+import { GroupModal } from './GroupModal';
 import type { UserAccountDetails } from '../types/user/userAccountDetails';
+import type { FriendListItem } from '../types/friend/friendListItem';
 import ws from '../api/ws';
 import type { AuthUser } from '../api/client';
 
@@ -19,6 +21,10 @@ export interface Message {
   editedAt?: string | null;
   editedById?: string | null;
   reactions?: { emoji: string; count: number; reactedByMe?: boolean }[];
+  senderId?: string;
+  senderName?: string;
+  senderAvatarUrl?: string | null;
+  senderOnline?: boolean;
 }
 
 export interface Contact {
@@ -34,6 +40,7 @@ export interface Contact {
   otherUserId?: string;
   username?: string;
   email?: string;
+  isGroup?: boolean;
 }
 
 export interface FriendRequest {
@@ -108,22 +115,36 @@ const initials = (value?: string | null) => {
     .toUpperCase();
 };
 
+const mapFriendApiEntry = (entry: any): FriendListItem => ({
+  friend: entry.friend,
+  isOnline: Boolean(entry.is_online),
+  lastReadMessageId: entry.last_read_message_id ?? null,
+  unreadCount: entry.unread_count ?? 0,
+});
+
+const getSenderDisplayName = (payload: any) =>
+  payload?.senderName || payload?.senderUsername || payload?.senderEmail;
+
 const mapPreviewToContact = (preview: ConversationPreviewResponse): Contact => {
+  const isGroup = Boolean(preview.is_group);
   const other = preview.other_users?.[0];
-  const name = other?.username || preview.name || other?.email || 'Conversation';
+  const baseName = isGroup
+    ? preview.name || 'Group Conversation'
+    : other?.username || preview.name || other?.email || 'Conversation';
   return {
     id: String(preview.id),
     conversationId: String(preview.id),
-    name,
-    avatar: initials(other?.username || other?.email || name),
+    name: baseName,
+    avatar: initials(baseName),
     lastMessage: preview.last_message || '',
     timestamp: formatTimeLabel(preview.last_message_at),
     unread: preview.unread_count,
     online: false,
-    isFriend: true,
-    otherUserId: other ? String(other.id) : undefined,
-    username: other?.username,
-    email: other?.email,
+    isFriend: !isGroup,
+    isGroup,
+    otherUserId: isGroup ? undefined : other ? String(other.id) : undefined,
+    username: isGroup ? undefined : other?.username,
+    email: isGroup ? undefined : other?.email,
   };
 };
 
@@ -147,12 +168,14 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [friendsList, setFriendsList] = useState<Contact[]>([]);
+  const [friendItems, setFriendItems] = useState<FriendListItem[]>([]);
   const [userAccount, setUserAccount] = useState<UserAccountDetails>({
     id: currentUser.id,
     username: currentUser.username || '',
     email: currentUser.email,
     avatar_url: currentUser.avatar_url || null,
   });
+  const [showGroupModal, setShowGroupModal] = useState(false);
   const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
   const [sentRequests, setSentRequests] = useState<SentRequest[]>([]);
 
@@ -161,6 +184,18 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
   const currentUserRef = useRef<string>(currentUser.id);
   const presenceMapRef = useRef<Record<string, boolean>>({});
   const historyAbortRef = useRef<AbortController | null>(null);
+  const myReactionsRef = useRef<Record<string, Set<string>>>({});
+  const getSenderOnline = (senderId?: string) =>
+    senderId ? Boolean(presenceMapRef.current[senderId]) : undefined;
+
+  const overlayMyReactions = useCallback(
+    (reactions: { emoji: string; count: number; reactedByMe?: boolean }[] | undefined, messageId: string) => {
+      const mine = myReactionsRef.current[messageId];
+      if (!mine || !reactions) return reactions;
+      return reactions.map((r) => (mine.has(r.emoji) ? { ...r, reactedByMe: true } : r));
+    },
+    []
+  );
 
   useEffect(() => {
     selectedConversationRef.current = selectedContactId;
@@ -229,6 +264,7 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
           unread: conv?.unread_count ?? f.unread_count ?? 0,
           online: Boolean(f.is_online) || Boolean(existing?.online),
           isFriend: true,
+          isGroup: false,
           otherUserId: friendId,
           username: friendUser.username,
           email: friendUser.email,
@@ -273,15 +309,16 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
       }
       loadingContactsRef.current = true;
       try {
+      // eslint-disable-next-line no-console
+      console.log('loadContacts fetch start');
+      const [friendsData, previews] = await Promise.all([fetchFriends(), refreshConversations()]);
+      if (friendsData === null && previews === null) {
         // eslint-disable-next-line no-console
-        console.log('loadContacts fetch start');
-        const [friendsData, previews] = await Promise.all([fetchFriends(), refreshConversations()]);
-        if (friendsData === null && previews === null) {
-          // eslint-disable-next-line no-console
-          console.warn('loadContacts skipped update due to fetch errors');
-          return;
-        }
-        mergeFriendsAndConversations(friendsData ?? [], previews ?? []);
+        console.warn('loadContacts skipped update due to fetch errors');
+        return;
+      }
+      setFriendItems(friendsData ? friendsData.map(mapFriendApiEntry) : []);
+      mergeFriendsAndConversations(friendsData ?? [], previews ?? []);
       } finally {
         loadingContactsRef.current = false;
         lastContactsLoadRef.current = Date.now();
@@ -391,6 +428,10 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
       if (!convId) return;
 
       const senderId = String(payload.senderId || payload.sender_id || '');
+      const senderName = getSenderDisplayName(payload);
+      const senderAvatarUrl =
+        payload.senderAvatarUrl ?? payload.sender_avatar_url ?? null;
+      const senderOnline = getSenderOnline(senderId);
       const msg: Message = {
         id: String(payload.messageId || payload.id || safeId()),
         conversationId: convId,
@@ -400,6 +441,10 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
         status: payload.read ? 'read' : payload.delivered ? 'delivered' : 'sent',
         editedAt: payload.editedAt,
         editedById: payload.editedById,
+        senderId,
+        senderName,
+        senderAvatarUrl,
+        senderOnline,
       };
 
       setMessages((prev) => ({
@@ -451,26 +496,40 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
     const pendingInfo = correlationId ? pendingRef.current[correlationId] : undefined;
     const targetConv = convId || pendingInfo?.conversationId;
 
-    if (!targetConv) return;
-
     const realMessageId = ackMsg?.messageId || data?.messageId;
     const status: Message['status'] =
       data?.status === 'ok' ? (delivered ? 'delivered' : 'sent') : 'failed';
 
     setMessages((prev) => {
-      const conv = prev[targetConv] || [];
+      // resolve conversation for reaction acks where convId is missing
+      let resolvedConv = targetConv;
+      if (!resolvedConv && realMessageId) {
+        for (const cid of Object.keys(prev)) {
+          if (prev[cid]?.some((m) => String(m.id) === String(realMessageId))) {
+            resolvedConv = cid;
+            break;
+          }
+        }
+      }
+      if (!resolvedConv) return prev;
+
+      const conv = prev[resolvedConv] || [];
       const updated: Message[] = conv.map((msg) => {
         const matchesTemp = pendingInfo && msg.id === pendingInfo.tempId;
-        const matchesReal = realMessageId && msg.id === realMessageId;
+        const matchesReal = realMessageId && String(msg.id) === String(realMessageId);
         if (!matchesTemp && !matchesReal) return msg;
 
         const reactionsFromCounts = ackMsg?.counts
-          ? Object.keys(ackMsg.counts).map((emoji) => ({
-              emoji,
-              count: ackMsg.counts[emoji],
-            }))
+          ? overlayMyReactions(
+              Object.keys(ackMsg.counts).map((emoji) => ({
+                emoji,
+                count: ackMsg.counts[emoji],
+              })),
+              targetConv
+            )
           : msg.reactions;
 
+        const updatedSenderId = ackMsg?.senderId ? String(ackMsg.senderId) : msg.senderId;
         return {
           ...msg,
           id: realMessageId || msg.id,
@@ -479,23 +538,29 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
           status,
           editedAt: ackMsg?.editedAt ?? msg.editedAt,
           editedById: ackMsg?.editedById ?? msg.editedById,
+          senderId: updatedSenderId,
+          senderName: getSenderDisplayName(ackMsg) ?? msg.senderName,
+          senderAvatarUrl: ackMsg?.senderAvatarUrl ?? msg.senderAvatarUrl,
+          senderOnline: getSenderOnline(updatedSenderId),
           reactions: reactionsFromCounts,
         };
       }) as Message[];
-      return { ...prev, [targetConv]: updated };
+      return { ...prev, [resolvedConv]: updated };
     });
 
-    setFriendsList((prev) =>
-      prev.map((c) =>
-        c.id === targetConv
-          ? {
-              ...c,
-              lastMessage: ackMsg?.content ?? c.lastMessage,
-              timestamp: formatTimeLabel(ackMsg?.createdAt || new Date()),
-            }
-          : c
-      )
-    );
+    if (targetConv) {
+      setFriendsList((prev) =>
+        prev.map((c) =>
+          c.id === targetConv
+            ? {
+                ...c,
+                lastMessage: ackMsg?.content ?? c.lastMessage,
+                timestamp: formatTimeLabel(ackMsg?.createdAt || new Date()),
+              }
+            : c
+        )
+      );
+    }
 
     if (correlationId) {
       const { [correlationId]: _, ...rest } = pendingRef.current;
@@ -523,7 +588,10 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
   const handleReactionEvent = useCallback((data: any) => {
     const mid = String(data.messageId || data.message_id || '');
     const counts = data.counts || {};
-    const reactions = Object.keys(counts).map((k) => ({ emoji: k, count: counts[k] }));
+    const reactions = overlayMyReactions(
+      Object.keys(counts).map((k) => ({ emoji: k, count: counts[k] })),
+      mid
+    );
     setMessages((prev) => {
       const newPrev = { ...prev };
       for (const cid of Object.keys(newPrev)) {
@@ -571,6 +639,27 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
           return c;
         })
       );
+
+      setMessages((prev) => {
+        let changed = false;
+        const next: Record<string, Message[]> = {};
+        for (const [convId, convMessages] of Object.entries(prev)) {
+          let convChanged = false;
+          const updatedMessages = convMessages.map((msg) => {
+            if (msg.senderId !== userId) return msg;
+            if (msg.senderOnline === isOnline) return msg;
+            convChanged = true;
+            return { ...msg, senderOnline: isOnline };
+          });
+          if (convChanged) {
+            changed = true;
+            next[convId] = updatedMessages;
+          } else {
+            next[convId] = convMessages;
+          }
+        }
+        return changed ? next : prev;
+      });
 
       if (!seen) {
         loadContacts();
@@ -642,6 +731,9 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
       sender: 'me',
       timestamp: new Date(),
       status: 'sent',
+      senderId: currentUserRef.current,
+      senderName: 'You',
+      senderAvatarUrl: userAccount.avatar_url,
     };
 
     setMessages((prev) => ({
@@ -727,16 +819,35 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
       const conv = prev[selectedContactId] || [];
       const newConv = conv.map((m) => {
         if (m.id !== messageId) return m;
-        const existing = (m.reactions || []).find((r) => r.emoji === emoji);
-        if (existing) {
-          return { ...m, reactions: (m.reactions || []).filter((r) => r.emoji !== emoji) };
+        const reactions = m.reactions || [];
+        const existing = reactions.find((r) => r.emoji === emoji);
+        const mine = myReactionsRef.current[messageId]?.has(emoji) || existing?.reactedByMe;
+        if (existing && mine) {
+          const updatedReactions =
+            existing.count > 1
+              ? reactions.map((r) =>
+                  r.emoji === emoji ? { ...r, count: r.count - 1, reactedByMe: false } : r
+                )
+              : reactions.filter((r) => r.emoji !== emoji);
+          myReactionsRef.current[messageId]?.delete(emoji);
+          return { ...m, reactions: updatedReactions };
         }
-        return { ...m, reactions: [...(m.reactions || []), { emoji, count: 1, reactedByMe: true }] };
+        const updated = existing
+          ? reactions.map((r) =>
+              r.emoji === emoji ? { ...r, count: r.count + 1, reactedByMe: true } : r
+            )
+          : [...reactions, { emoji, count: 1, reactedByMe: true }];
+        myReactionsRef.current[messageId] = myReactionsRef.current[messageId] || new Set<string>();
+        myReactionsRef.current[messageId].add(emoji);
+        return { ...m, reactions: updated };
       });
       return { ...prev, [selectedContactId]: newConv };
     });
 
-    ws.send({ type: 'message_reaction', data: { messageId, emoji, action: 'add' } });
+    const mineSet = myReactionsRef.current[messageId];
+    const isMine = mineSet ? mineSet.has(emoji) : false;
+    const action = isMine ? 'add' : 'remove';
+    ws.send({ type: 'message_reaction', data: { messageId, emoji, action } });
   };
 
   const loadHistory = useCallback(
@@ -765,16 +876,30 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
         }
         const body = await res.json();
         const items = (body?.messages || body || []) as any[];
-        const normalized: Message[] = items.map((m) => ({
-          id: String(m.id || m.messageId),
-          conversationId: String(m.conversationId || conversationId),
-          text: m.content || '',
-          sender: String(m.senderId || m.sender_id || '') === currentUserRef.current ? 'me' : 'them',
-          timestamp: m.createdAt ? new Date(m.createdAt) : new Date(),
-          status: m.read ? 'read' : m.delivered ? 'delivered' : 'sent',
-          editedAt: m.editedAt || null,
-          editedById: m.editedById || null,
-        }));
+        const normalized: Message[] = items.map((m) => {
+          const counts = m.reactions || m.counts;
+          const reactions = counts
+            ? overlayMyReactions(
+                Object.keys(counts).map((emoji) => ({ emoji, count: counts[emoji] })),
+                String(m.id || m.messageId)
+              )
+            : undefined;
+          return {
+            id: String(m.id || m.messageId),
+            conversationId: String(m.conversationId || conversationId),
+            text: m.content || '',
+            sender: String(m.senderId || m.sender_id || '') === currentUserRef.current ? 'me' : 'them',
+            timestamp: m.createdAt ? new Date(m.createdAt) : new Date(),
+            status: m.read ? 'read' : m.delivered ? 'delivered' : 'sent',
+            editedAt: m.editedAt || null,
+            editedById: m.editedById || null,
+            senderId: String(m.senderId || m.sender_id || ''),
+            senderName: m.sender?.username || m.sender?.email || undefined,
+            senderAvatarUrl: m.sender?.avatarUrl ?? null,
+            senderOnline: getSenderOnline(String(m.senderId || m.sender_id || '')),
+            reactions,
+          };
+        });
 
         setMessages((prev) => {
           const existing = prev[conversationId] || [];
@@ -807,6 +932,57 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
       }
     };
   }, [loadHistory, selectedContactId]);
+
+  const handleCreateGroup = useCallback(
+    async (groupName: string, memberIds: string[]) => {
+      if (!groupName.trim() || memberIds.length === 0) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/conversations/group`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            groupName,
+            participantIds: memberIds,
+          }),
+        });
+        if (!res.ok) {
+          console.warn('Failed to create group', res.status);
+          return;
+        }
+        const data = await res.json();
+        const convId = String(data.id);
+        setSelectedContactId(convId);
+        setMessages((prev) => ({
+          ...prev,
+          [convId]: prev[convId] || [],
+        }));
+        const createdAt = data.created_at ? new Date(data.created_at) : new Date();
+        setFriendsList((prev) => [
+          {
+            id: convId,
+            conversationId: convId,
+            name: data.name || groupName,
+            avatar: initials(data.name || groupName),
+            lastMessage: '',
+            timestamp: formatTimeLabel(createdAt),
+            unread: 0,
+            online: false,
+            isFriend: false,
+            isGroup: true,
+          },
+          ...prev.filter((c) => c.id !== convId),
+        ]);
+        loadHistory(convId);
+        loadContacts({ force: true });
+      } catch (err) {
+        console.error('Error creating group', err);
+      }
+    },
+    [loadContacts, loadHistory]
+  );
 
   const handleSelectContact = useCallback(
     async (id: string) => {
@@ -952,6 +1128,7 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         onOpenFriendRequests={() => setShowFriendRequests(true)}
         incomingRequestsCount={incomingRequests.length}
+        onOpenGroupModal={() => setShowGroupModal(true)}
         onOpenAccount={() => setShowAccount(true)}
       />
       <ChatView
@@ -977,6 +1154,13 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
         onClose={() => setShowAccount(false)}
         account={userAccount}
         onSave={handleSaveAccount}
+      />
+      <GroupModal
+        isOpen={showGroupModal}
+        mode="create"
+        friends={friendItems}
+        onClose={() => setShowGroupModal(false)}
+        onSubmit={handleCreateGroup}
       />
     </div>
   );

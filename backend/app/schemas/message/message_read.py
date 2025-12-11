@@ -23,3 +23,4 @@ class MessageRead(BaseModel):
     read: bool
     edited_at: datetime | None = Field(None, alias="editedAt")
     edited_by_id: UUID | None = Field(None, alias="editedById")
+    reactions: dict[str, int] = Field(default_factory=dict)
