@@ -1,4 +1,4 @@
-import { Search, MessageCircle, MoreVertical, LogOut, UserPlus, UserCircle } from 'lucide-react';
+import { Search, MessageCircle, MoreVertical, LogOut, UserPlus, UserCircle, Users } from 'lucide-react';
 import type { Contact } from './ChatApp';
 import { useMemo, useState } from 'react';
 
@@ -11,6 +11,7 @@ interface ChatSidebarProps {
   onToggleCollapse: () => void;
   onOpenFriendRequests: () => void;
   incomingRequestsCount: number;
+  onOpenGroupModal: () => void;
   onOpenAccount: () => void;
 }
 
@@ -23,6 +24,7 @@ export function ChatSidebar({
   onToggleCollapse,
   onOpenFriendRequests,
   incomingRequestsCount,
+  onOpenGroupModal,
   onOpenAccount
 }: ChatSidebarProps) {
   const [showMenu, setShowMenu] = useState(false);
@@ -30,9 +32,9 @@ export function ChatSidebar({
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return contacts.filter(c => c.isFriend);
-    return contacts.filter((c) => {
-      if (!c.isFriend) return false;
+    const visible = contacts.filter((c) => c.isFriend || c.isGroup);
+    if (!q) return visible;
+    return visible.filter((c) => {
       return (
         c.name.toLowerCase().includes(q) ||
         (c.username && c.username.toLowerCase().includes(q)) ||
@@ -106,6 +108,15 @@ export function ChatSidebar({
             )}
           </button>
         )}
+        {!isCollapsed && (
+          <button
+            onClick={onOpenGroupModal}
+            className="w-full mb-4 px-4 py-2 border border-gray-200 bg-white text-blue-700 rounded-lg hover:bg-gray-50 hover:border-blue-300 transition-colors flex items-center justify-center gap-2 shadow-sm"
+          >
+            <Users className="w-4 h-4 text-blue-600" />
+            <span className="text-sm font-semibold tracking-wide">Create Group</span>
+          </button>
+        )}
 
         {isCollapsed && (
           <button
@@ -119,6 +130,15 @@ export function ChatSidebar({
                 {incomingRequestsCount}
               </span>
             )}
+          </button>
+        )}
+        {isCollapsed && (
+          <button
+            onClick={onOpenGroupModal}
+            className="w-full mb-4 p-3 border border-gray-200 bg-white text-blue-700 rounded-lg hover:bg-gray-50 hover:border-blue-300 transition-colors flex items-center justify-center shadow-sm"
+            title="Create Group"
+          >
+            <Users className="w-5 h-5 text-blue-600" />
           </button>
         )}
 

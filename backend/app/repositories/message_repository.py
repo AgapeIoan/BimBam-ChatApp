@@ -30,6 +30,7 @@ class MessageRepository:
         self._session.add(msg)
         await self._session.flush()
         await self._session.refresh(msg)
+        await self._session.refresh(msg, attribute_names=["sender"])
         return msg
 
     async def get_latest_for_conversations(self, conversation_ids: list[UUID]):

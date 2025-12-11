@@ -28,7 +28,9 @@ class ConversationRepository:
         result = await self.session.execute(
             select(Conversation)
             .where(Conversation.id == conversation_id)
-            .options(selectinload(Conversation.members))  # load members
+            .options(
+                selectinload(Conversation.members).selectinload(ConversationMember.user)
+            )
         )
         return result.scalars().one_or_none()
 
