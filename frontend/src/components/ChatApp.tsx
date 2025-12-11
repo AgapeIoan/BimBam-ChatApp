@@ -32,6 +32,7 @@ export interface Contact {
   conversationId?: string;
   name: string;
   avatar: string;
+  avatarUrl?: string | null;
   lastMessage: string;
   timestamp: string;
   unread?: number;
@@ -131,11 +132,13 @@ const mapPreviewToContact = (preview: ConversationPreviewResponse): Contact => {
   const baseName = isGroup
     ? preview.name || 'Group Conversation'
     : other?.username || preview.name || other?.email || 'Conversation';
+  const avatarUrl = isGroup ? null : (other as any)?.avatar_url ?? (other as any)?.avatarUrl ?? null;
   return {
     id: String(preview.id),
     conversationId: String(preview.id),
     name: baseName,
     avatar: initials(baseName),
+    avatarUrl,
     lastMessage: preview.last_message || '',
     timestamp: formatTimeLabel(preview.last_message_at),
     unread: preview.unread_count,
@@ -253,12 +256,14 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
         const friendId = String(friendUser.id || '');
         const conv = convByUserId.get(friendId);
         const name = friendUser.username || friendUser.email || 'Friend';
+        const avatarUrl = friendUser.avatar_url || friendUser.avatarUrl || null;
         const existing = prevById.get(conv ? String(conv.id) : friendId);
         return {
           id: conv ? String(conv.id) : friendId,
           conversationId: conv ? String(conv.id) : undefined,
           name,
           avatar: initials(friendUser.username || friendUser.email || name),
+          avatarUrl,
           lastMessage: conv?.last_message || '',
           timestamp: formatTimeLabel(conv?.last_message_at),
           unread: conv?.unread_count ?? f.unread_count ?? 0,
@@ -966,6 +971,7 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
             conversationId: convId,
             name: data.name || groupName,
             avatar: initials(data.name || groupName),
+            avatarUrl: null,
             lastMessage: '',
             timestamp: formatTimeLabel(createdAt),
             unread: 0,

@@ -29,6 +29,7 @@ export function ChatSidebar({
 }: ChatSidebarProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [search, setSearch] = useState('');
+  const [avatarErrors, setAvatarErrors] = useState<Record<string, boolean>>({});
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -159,49 +160,67 @@ export function ChatSidebar({
 
       {/* Contacts List */}
       <div className="flex-1 overflow-y-auto">
-        {filtered.map((contact) => (
-          <button
-            key={contact.id}
-            onClick={() => onSelectContact(contact.id)}
-            className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100 ${
-              selectedContactId === contact.id ? 'bg-blue-50' : ''
-            }`}
-            title={isCollapsed ? contact.name : undefined}
-          >
-            {/* Avatar */}
-            <div className="relative flex-shrink-0">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white">
-                {contact.avatar}
+        {filtered.map((contact) => {
+          if (import.meta.env.DEV) {
+            // eslint-disable-next-line no-console
+            console.log('Sidebar Item Data:', contact);
+          }
+          return (
+            <button
+              key={contact.id}
+              onClick={() => onSelectContact(contact.id)}
+              className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100 ${
+                selectedContactId === contact.id ? 'bg-blue-50' : ''
+              }`}
+              title={isCollapsed ? contact.name : undefined}
+            >
+              {/* Avatar */}
+              <div className="relative flex-shrink-0">
+                {contact.avatarUrl && !avatarErrors[contact.id] ? (
+                  <img
+                    src={contact.avatarUrl}
+                    alt={contact.name}
+                    className="w-12 h-12 rounded-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      setAvatarErrors((prev) => ({ ...prev, [contact.id]: true }));
+                    }}
+                  />
+                ) : (
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white">
+                    {contact.avatar}
+                  </div>
+                )}
+                {contact.online && (
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                )}
+                {isCollapsed && (contact.unread ?? 0) > 0 && (
+                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
+                    {contact.unread}
+                  </div>
+                )}
               </div>
-              {contact.online && (
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-              )}
-              {isCollapsed && (contact.unread ?? 0) > 0 && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
-                  {contact.unread}
-                </div>
-              )}
-            </div>
 
-            {/* Contact Info */}
-            {!isCollapsed && (
-              <div className="flex-1 min-w-0 text-left">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-gray-900 truncate">{contact.name}</span>
-                  <span className="text-gray-500 text-xs flex-shrink-0 ml-2">{contact.timestamp}</span>
+              {/* Contact Info */}
+              {!isCollapsed && (
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-gray-900 truncate">{contact.name}</span>
+                    <span className="text-gray-500 text-xs flex-shrink-0 ml-2">{contact.timestamp}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-gray-600 text-sm truncate">{contact.lastMessage}</p>
+                    {(contact.unread ?? 0) > 0 && (
+                      <div className="flex-shrink-0 ml-2 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
+                        {contact.unread}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-gray-600 text-sm truncate">{contact.lastMessage}</p>
-                  {(contact.unread ?? 0) > 0 && (
-                    <div className="flex-shrink-0 ml-2 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center">
-                      {contact.unread}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </button>
-        ))}
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
