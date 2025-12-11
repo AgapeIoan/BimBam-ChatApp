@@ -711,8 +711,12 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
       } else if (t === 'typing') {
         const fromId = String(data.fromUserId || data.from_user_id || '');
         const toId = String(data.toUserId || data.to_user_id || '');
+        const convId = String(data.conversationId || data.conversation_id || '');
         const isTyping = Boolean(data.isTyping ?? data.is_typing);
-        if (!fromId || toId !== currentUserRef.current) return;
+        // For DMs: must be addressed to me; for groups: must match selected conversation
+        const isDmForMe = toId && toId === currentUserRef.current;
+        const isGroupForConv = convId && convId === selectedConversationRef.current;
+        if (!fromId || (!isDmForMe && !isGroupForConv)) return;
         setTypingUsers((prev) => {
           if (isTyping) {
             return { ...prev, [fromId]: Date.now() + 4000 };
@@ -885,14 +889,21 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
     (isTyping: boolean) => {
       if (!selectedContactId) return;
       const contact = friendsList.find((c) => c.id === selectedContactId);
-      if (!contact || contact.isGroup || !contact.otherUserId) return;
+      if (!contact) return;
+      const basePayload: any = {
+        fromUserId: currentUserRef.current,
+        isTyping,
+      };
+      if (contact.isGroup) {
+        basePayload.conversationId = selectedContactId;
+      } else if (contact.otherUserId) {
+        basePayload.toUserId = contact.otherUserId;
+      } else {
+        return;
+      }
       ws.send({
         type: 'typing',
-        data: {
-          fromUserId: currentUserRef.current,
-          toUserId: contact.otherUserId,
-          isTyping,
-        },
+        data: basePayload,
       });
     },
     [friendsList, selectedContactId]
@@ -1189,10 +1200,18 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
         onEditMessage={handleEditMessage}
         onReact={handleReact}
         typingLabel={
-          selectedContact?.otherUserId &&
-          typingUsers[selectedContact.otherUserId] &&
-          typingUsers[selectedContact.otherUserId] > Date.now()
-            ? `${selectedContact.name} is typing...`
+          selectedContact
+            ? selectedContact.isGroup
+              ? Object.entries(typingUsers)
+                  .filter(([uid, expiry]) => uid !== currentUserRef.current && expiry > Date.now())
+                  .length > 0
+                ? 'Someone is typing...'
+                : undefined
+              : selectedContact.otherUserId &&
+                typingUsers[selectedContact.otherUserId] &&
+                typingUsers[selectedContact.otherUserId] > Date.now()
+              ? `${selectedContact.name} is typing...`
+              : undefined
             : undefined
         }
         onTyping={sendTyping}

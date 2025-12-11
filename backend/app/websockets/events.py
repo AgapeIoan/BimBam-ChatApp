@@ -353,6 +353,24 @@ async def handle_typing(
         )
         return
 
+    # Group typing: broadcast to conversation members (except sender)
+    if payload.conversation_id:
+        envelope = {
+            "type": WebSocketEventType.TYPING.value,
+            "data": {
+                "fromUserId": str(user_id),
+                "conversationId": str(payload.conversation_id),
+                "isTyping": payload.is_typing,
+            },
+        }
+        await broadcast_to_conversation(payload.conversation_id, envelope, exclude={user_id})
+        return
+
+    # Direct typing: require to_user_id
+    if not payload.to_user_id:
+        await send_error(websocket, "validation_failed", "toUserId or conversationId required", correlation_id)
+        return
+
     envelope = {
         "type": WebSocketEventType.TYPING.value,
         "data": {
