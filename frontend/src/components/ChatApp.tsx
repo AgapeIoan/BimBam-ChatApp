@@ -161,6 +161,16 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
   const currentUserRef = useRef<string>(currentUser.id);
   const presenceMapRef = useRef<Record<string, boolean>>({});
   const historyAbortRef = useRef<AbortController | null>(null);
+  const myReactionsRef = useRef<Record<string, Set<string>>>({});
+
+  const overlayMyReactions = useCallback(
+    (reactions: { emoji: string; count: number; reactedByMe?: boolean }[] | undefined, messageId: string) => {
+      const mine = myReactionsRef.current[messageId];
+      if (!mine || !reactions) return reactions;
+      return reactions.map((r) => (mine.has(r.emoji) ? { ...r, reactedByMe: true } : r));
+    },
+    []
+  );
 
   useEffect(() => {
     selectedConversationRef.current = selectedContactId;
@@ -475,10 +485,13 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
         if (!matchesTemp && !matchesReal) return msg;
 
         const reactionsFromCounts = ackMsg?.counts
-          ? Object.keys(ackMsg.counts).map((emoji) => ({
-              emoji,
-              count: ackMsg.counts[emoji],
-            }))
+          ? overlayMyReactions(
+              Object.keys(ackMsg.counts).map((emoji) => ({
+                emoji,
+                count: ackMsg.counts[emoji],
+              })),
+              targetConv
+            )
           : msg.reactions;
 
         return {
@@ -535,7 +548,10 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
   const handleReactionEvent = useCallback((data: any) => {
     const mid = String(data.messageId || data.message_id || '');
     const counts = data.counts || {};
-    const reactions = Object.keys(counts).map((k) => ({ emoji: k, count: counts[k] }));
+    const reactions = overlayMyReactions(
+      Object.keys(counts).map((k) => ({ emoji: k, count: counts[k] })),
+      mid
+    );
     setMessages((prev) => {
       const newPrev = { ...prev };
       for (const cid of Object.keys(newPrev)) {
@@ -739,16 +755,35 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
       const conv = prev[selectedContactId] || [];
       const newConv = conv.map((m) => {
         if (m.id !== messageId) return m;
-        const existing = (m.reactions || []).find((r) => r.emoji === emoji);
-        if (existing) {
-          return { ...m, reactions: (m.reactions || []).filter((r) => r.emoji !== emoji) };
+        const reactions = m.reactions || [];
+        const existing = reactions.find((r) => r.emoji === emoji);
+        const mine = myReactionsRef.current[messageId]?.has(emoji) || existing?.reactedByMe;
+        if (existing && mine) {
+          const updatedReactions =
+            existing.count > 1
+              ? reactions.map((r) =>
+                  r.emoji === emoji ? { ...r, count: r.count - 1, reactedByMe: false } : r
+                )
+              : reactions.filter((r) => r.emoji !== emoji);
+          myReactionsRef.current[messageId]?.delete(emoji);
+          return { ...m, reactions: updatedReactions };
         }
-        return { ...m, reactions: [...(m.reactions || []), { emoji, count: 1, reactedByMe: true }] };
+        const updated = existing
+          ? reactions.map((r) =>
+              r.emoji === emoji ? { ...r, count: r.count + 1, reactedByMe: true } : r
+            )
+          : [...reactions, { emoji, count: 1, reactedByMe: true }];
+        myReactionsRef.current[messageId] = myReactionsRef.current[messageId] || new Set<string>();
+        myReactionsRef.current[messageId].add(emoji);
+        return { ...m, reactions: updated };
       });
       return { ...prev, [selectedContactId]: newConv };
     });
 
-    ws.send({ type: 'message_reaction', data: { messageId, emoji, action: 'add' } });
+    const mineSet = myReactionsRef.current[messageId];
+    const isMine = mineSet ? mineSet.has(emoji) : false;
+    const action = isMine ? 'add' : 'remove';
+    ws.send({ type: 'message_reaction', data: { messageId, emoji, action } });
   };
 
   const loadHistory = useCallback(
@@ -780,7 +815,10 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
         const normalized: Message[] = items.map((m) => {
           const counts = m.reactions || m.counts;
           const reactions = counts
-            ? Object.keys(counts).map((emoji) => ({ emoji, count: counts[emoji] }))
+            ? overlayMyReactions(
+                Object.keys(counts).map((emoji) => ({ emoji, count: counts[emoji] })),
+                String(m.id || m.messageId)
+              )
             : undefined;
           return {
             id: String(m.id || m.messageId),
