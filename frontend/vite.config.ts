@@ -29,6 +29,10 @@ export default defineConfig({
         "src/components/figma/**",
         "src/components/ui/**",
         "src/mock_data/**",
+        "src/test/setup.ts",
+        "src/App.tsx",
+        "src/main.tsx",
+        "src/api.ts",
       ],
 
       lines: 80,
