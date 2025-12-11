@@ -1,7 +1,7 @@
 import React from "react";
+import { describe, it, expect, jest } from "@jest/globals";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { jest, describe, it, expect } from "@jest/globals";
 
 import {
   FriendRequestsModal,
@@ -96,7 +96,6 @@ describe("FriendRequestsModal", () => {
 
     const onSearchUsers = jest.fn().mockResolvedValue(result);
     const onSendRequest = jest.fn();
-
     const props = createBaseProps({ onSearchUsers, onSendRequest });
 
     render(<FriendRequestsModal {...props} />);
@@ -118,7 +117,7 @@ describe("FriendRequestsModal", () => {
     expect(onSendRequest).toHaveBeenCalledWith("miruna@example.com");
   });
 
-  it('shows "No users found" message when search returns empty array', async () => {
+  it('shows "No users found" when search returns empty array', async () => {
     const onSearchUsers = jest.fn().mockResolvedValue([]);
     const props = createBaseProps({ onSearchUsers });
 
@@ -134,6 +133,39 @@ describe("FriendRequestsModal", () => {
     ).toBeInTheDocument();
   });
 
+  it("switches search type between username and email", async () => {
+    const props = createBaseProps();
+    render(<FriendRequestsModal {...props} />);
+
+    const inputUsername = screen.getByPlaceholderText("Search by username...");
+    expect(inputUsername).toHaveAttribute("type", "text");
+
+    await userEvent.click(screen.getByText("Email"));
+
+    const inputEmail = screen.getByPlaceholderText("Search by email...");
+    expect(inputEmail).toHaveAttribute("type", "email");
+  });
+
+  it("shows empty state when no incoming requests", async () => {
+    const props = createBaseProps({ incomingRequests: [] });
+    render(<FriendRequestsModal {...props} />);
+
+    await userEvent.click(screen.getByText("Incoming"));
+    expect(
+      screen.getByText("No incoming friend requests")
+    ).toBeInTheDocument();
+  });
+
+  it("shows empty state when no sent requests", async () => {
+    const props = createBaseProps({ sentRequests: [] });
+    render(<FriendRequestsModal {...props} />);
+
+    await userEvent.click(screen.getByText("Sent"));
+    expect(
+      screen.getByText("No pending sent requests")
+    ).toBeInTheDocument();
+  });
+
   it("calls Accept and Decline handlers", async () => {
     const onAcceptRequest = jest.fn();
     const onDeclineRequest = jest.fn();
@@ -144,7 +176,6 @@ describe("FriendRequestsModal", () => {
     await userEvent.click(screen.getByText("Incoming"));
 
     const buttons = screen.getAllByRole("button");
-
     const acceptButton = buttons[buttons.length - 2];
     const declineButton = buttons[buttons.length - 1];
 
