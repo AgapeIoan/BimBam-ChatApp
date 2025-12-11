@@ -263,6 +263,8 @@ async def handle_message_reaction(
                 message_obj, counts = await message_service.add_reaction(payload.message_id, user_id, payload.emoji)
             else:
                 message_obj, counts = await message_service.remove_reaction(payload.message_id, user_id, payload.emoji)
+            # Also load usernames grouped by emoji for tooltip display
+            users_by_emoji = await reaction_repo.get_usernames_grouped_by_emoji(payload.message_id)
         except Exception as exc:  # noqa: BLE001
             logger.exception("Failed to process reaction: %s", exc)
             await send_error(websocket, "db_error", "Failed to process reaction", correlation_id)
@@ -287,6 +289,8 @@ async def handle_message_reaction(
         logger.warning("Failed to load conversation members for reaction delivery: %s", exc)
 
     room_id = _room_id(conversation_id) if conversation_id else None
+    # Build data including counts and usernames per emoji
+    # Shape: counts: { emoji: count }, users: { emoji: [username, ...] }
     reaction_envelope = {
         "type": WebSocketEventType.MESSAGE_REACTION.value,
         "data": {
@@ -294,6 +298,7 @@ async def handle_message_reaction(
             "counts": counts,
             "conversationId": str(conversation_id) if conversation_id else None,
             "roomId": room_id,
+            "users": users_by_emoji,
         },
     }
 
@@ -319,6 +324,7 @@ async def handle_message_reaction(
             "counts": counts,
             "conversationId": str(conversation_id) if conversation_id else None,
             "roomId": room_id,
+            "users": users_by_emoji,
         },
     )
 
