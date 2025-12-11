@@ -21,6 +21,22 @@ export function MessageItem({ message, onEdit, onReact, showSenderName = false }
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(message.text || '');
   const [showPicker, setShowPicker] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
+  const isMine = message.sender === 'me';
+  const displayName = message.senderName || (isMine ? 'You' : 'User');
+  const avatarInitials = useMemo(() => {
+    const source = displayName || 'User';
+    const parts = String(source)
+      .split(/[\s@._-]+/)
+      .filter(Boolean)
+      .slice(0, 2);
+    if (!parts.length) return source.slice(0, 2).toUpperCase() || '??';
+    return parts
+      .map((p) => p[0])
+      .join('')
+      .toUpperCase();
+  }, [displayName]);
+  const showOnline = !isMine && Boolean(message.senderOnline);
 
   const reactions: Reaction[] = Array.isArray(message.reactions)
     ? message.reactions
@@ -51,89 +67,108 @@ export function MessageItem({ message, onEdit, onReact, showSenderName = false }
   };
 
   return (
-    <div className={`flex ${message.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-md px-4 py-2 rounded-2xl ${
-          message.sender === 'me' ? 'bg-blue-600 text-white' : 'bg-white text-gray-900 border border-gray-200'
-        }`}
-      >
-        {!editing ? (
-          <>
-            {showSenderName && message.sender !== 'me' && message.senderName && (
-              <div className="flex items-center gap-2 mb-1">
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    message.senderOnline ? 'bg-green-400' : 'bg-gray-400'
-                  }`}
-                />
-                <span className="text-[11px] text-gray-400 uppercase tracking-wide">
-                  {message.senderName}
-                </span>
+    <div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+      <div className="flex items-start gap-3">
+        {!isMine && (
+          <div className="relative inline-flex w-10 h-10 flex-shrink-0 items-center justify-center leading-none">
+            {message.senderAvatarUrl && !avatarError ? (
+              <img
+                src={message.senderAvatarUrl}
+                alt={displayName}
+                className="w-full h-full rounded-full object-cover"
+                onError={(e) => {
+                  setAvatarError(true);
+                }}
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white">
+                {avatarInitials}
               </div>
             )}
-            <p className="leading-relaxed">
-              {message.text}
-              {isEdited && (
-                <span
-                  className="ml-2 text-xs opacity-70"
-                  title={editedAt ? `Edited: ${editedAt.toLocaleString()}` : 'Edited'}
-                >
-                  (edited)
-                </span>
-              )}
-            </p>
-            <div className="flex items-center gap-2 mt-2 text-xs opacity-80">
-              <span>{formatTime(createdAt)}</span>
-              <div className="flex gap-2">
-                {reactions.map((r) => (
-                  <button
-                    key={r.emoji}
-                    onClick={() => onReact(message.id, r.emoji)}
-                    className="text-sm bg-gray-100 px-2 py-1 rounded-full"
-                  >
-                    {r.emoji} {r.count}
-                  </button>
-                ))}
-              </div>
-              <div className="ml-auto flex items-center gap-2 text-[11px]">
-                {message.sender === 'me' && (
-                  <button onClick={() => setEditing(true)} className="text-xs text-gray-200/80 hover:underline">
-                    Edit
-                  </button>
-                )}
-                <button onClick={() => setShowPicker((s) => !s)} className="text-xs text-gray-200/80">
-                  React
-                </button>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex gap-2">
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              className="flex-1 rounded px-2 py-1"
-            />
-            <button onClick={submitEdit} className="text-sm px-2 py-1 bg-blue-500 text-white rounded">
-              Save
-            </button>
-            <button onClick={() => setEditing(false)} className="text-sm px-2 py-1 bg-gray-200 rounded">
-              Cancel
-            </button>
+            {showOnline && (
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
+            )}
           </div>
         )}
 
-        {showPicker && (
-          <div className="mt-2">
-            <ReactionPicker
-              onSelect={(emoji) => {
-                onReact(message.id, emoji);
-                setShowPicker(false);
-              }}
-              onClose={() => setShowPicker(false)}
-            />
-          </div>
-        )}
+        <div
+          className={`max-w-md px-4 py-2 rounded-2xl ${
+            isMine ? 'bg-blue-600 text-white' : 'bg-white text-gray-900 border border-gray-200'
+          }`}
+        >
+          {!editing ? (
+            <>
+              {showSenderName && !isMine && displayName && (
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[11px] text-gray-400 uppercase tracking-wide">
+                    {displayName}
+                  </span>
+                </div>
+              )}
+              <p className="leading-relaxed">
+                {message.text}
+                {isEdited && (
+                  <span
+                    className="ml-2 text-xs opacity-70"
+                    title={editedAt ? `Edited: ${editedAt.toLocaleString()}` : 'Edited'}
+                  >
+                    (edited)
+                  </span>
+                )}
+              </p>
+              <div className="flex items-center gap-2 mt-2 text-xs opacity-80">
+                <span>{formatTime(createdAt)}</span>
+                <div className="flex gap-2">
+                  {reactions.map((r) => (
+                    <button
+                      key={r.emoji}
+                      onClick={() => onReact(message.id, r.emoji)}
+                      className="text-sm bg-gray-100 px-2 py-1 rounded-full"
+                    >
+                      {r.emoji} {r.count}
+                    </button>
+                  ))}
+                </div>
+                <div className="ml-auto flex items-center gap-2 text-[11px]">
+                  {isMine && (
+                    <button onClick={() => setEditing(true)} className="text-xs text-gray-200/80 hover:underline">
+                      Edit
+                    </button>
+                  )}
+                  <button onClick={() => setShowPicker((s) => !s)} className="text-xs text-gray-200/80">
+                    React
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                className="flex-1 rounded px-2 py-1"
+              />
+              <button onClick={submitEdit} className="text-sm px-2 py-1 bg-blue-500 text-white rounded">
+                Save
+              </button>
+              <button onClick={() => setEditing(false)} className="text-sm px-2 py-1 bg-gray-200 rounded">
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {showPicker && (
+            <div className="mt-2">
+              <ReactionPicker
+                onSelect={(emoji) => {
+                  onReact(message.id, emoji);
+                  setShowPicker(false);
+                }}
+                onClose={() => setShowPicker(false)}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -170,9 +170,17 @@ export function ChatSidebar({
           >
             {/* Avatar */}
             <div className="relative flex-shrink-0">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white">
-                {contact.avatar}
-              </div>
+              {contact.avatarUrl ? (
+                <img
+                  src={contact.avatarUrl}
+                  alt={contact.name}
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white">
+                  {contact.avatar}
+                </div>
+              )}
               {contact.online && (
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
               )}
