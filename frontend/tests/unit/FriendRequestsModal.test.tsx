@@ -1,7 +1,8 @@
+import "@testing-library/jest-dom";
 import React from "react";
-import { describe, it, expect, jest } from "@jest/globals";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, it, expect, jest } from "@jest/globals";
 
 import {
   FriendRequestsModal,
@@ -198,5 +199,124 @@ describe("FriendRequestsModal", () => {
     await userEvent.click(cancelButton);
 
     expect(onCancelRequest).toHaveBeenCalledWith("req-2");
+  });
+
+
+  it("calls onClose when the X button is clicked", async () => {
+  const user = userEvent.setup();
+  const onClose = jest.fn();
+  const props = createBaseProps({ onClose });
+
+  render(<FriendRequestsModal {...props} />);
+
+  const closeButton = screen
+    .getAllByRole("button")
+    .find((btn) => btn.textContent === "") as HTMLButtonElement;
+
+  expect(closeButton).toBeDefined();
+
+  await user.click(closeButton);
+
+  expect(onClose).toHaveBeenCalledTimes(1);
+});
+
+
+  it('shows "Already friends" label for users that are already friends', async () => {
+    const result: UserSearchResult[] = [
+      {
+        id: "user-friend",
+        username: "bestie",
+        email: "bestie@example.com",
+        avatar: "B",
+        avatarUrl: null,
+        name: "Best Friend",
+        isFriend: true,
+        hasPendingRequest: false,
+      },
+    ];
+
+    const onSearchUsers = jest.fn().mockResolvedValue(result);
+    const props = createBaseProps({ onSearchUsers });
+
+    render(<FriendRequestsModal {...props} />);
+
+    const input = screen.getByPlaceholderText("Search by username...");
+    await userEvent.type(input, "bestie");
+
+    await waitFor(() => {
+      expect(onSearchUsers).toHaveBeenCalledWith("bestie");
+    });
+
+    expect(screen.getByText("Best Friend")).toBeInTheDocument();
+    expect(screen.getByText("@bestie")).toBeInTheDocument();
+    expect(screen.getByText("bestie@example.com")).toBeInTheDocument();
+    expect(screen.getByText("Already friends")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /add/i })).not.toBeInTheDocument();
+  });
+
+  it('shows "Request sent" label for users with pending request', async () => {
+    const result: UserSearchResult[] = [
+      {
+        id: "user-pending",
+        username: "almostfriend",
+        email: "almost@example.com",
+        avatar: "A",
+        avatarUrl: null,
+        name: "Almost Friend",
+        isFriend: false,
+        hasPendingRequest: true,
+      },
+    ];
+
+    const onSearchUsers = jest.fn().mockResolvedValue(result);
+    const props = createBaseProps({ onSearchUsers });
+
+    render(<FriendRequestsModal {...props} />);
+
+    const input = screen.getByPlaceholderText("Search by username...");
+    await userEvent.type(input, "almostfriend");
+
+    await waitFor(() => {
+      expect(onSearchUsers).toHaveBeenCalledWith("almostfriend");
+    });
+
+    expect(screen.getByText("Almost Friend")).toBeInTheDocument();
+    expect(screen.getByText("@almostfriend")).toBeInTheDocument();
+    expect(screen.getByText("almost@example.com")).toBeInTheDocument();
+    expect(screen.getByText("Request sent")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /add/i })).not.toBeInTheDocument();
+  });
+
+  it("renders avatar image when avatarUrl is provided and handles image error to show fallback avatar", async () => {
+    const result: UserSearchResult[] = [
+      {
+        id: "user-img",
+        username: "avataruser",
+        email: "avatar@example.com",
+        avatar: "A",
+        avatarUrl: "http://example.com/avatar.png",
+        name: "Avatar User",
+        isFriend: false,
+        hasPendingRequest: false,
+      },
+    ];
+
+    const onSearchUsers = jest.fn().mockResolvedValue(result);
+    const props = createBaseProps({ onSearchUsers });
+
+    render(<FriendRequestsModal {...props} />);
+
+    const input = screen.getByPlaceholderText("Search by username...");
+    await userEvent.type(input, "avataruser");
+
+    await waitFor(() => {
+      expect(onSearchUsers).toHaveBeenCalledWith("avataruser");
+    });
+
+    const img = await screen.findByAltText("Avatar User");
+    expect(img).toBeInTheDocument();
+
+    fireEvent.error(img);
+    expect(screen.getByText("Avatar User")).toBeTruthy();
   });
 });

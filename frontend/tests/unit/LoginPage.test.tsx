@@ -2,9 +2,35 @@ import "@testing-library/jest-dom";
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, jest } from "@jest/globals";
+import { describe, it, expect, jest, beforeAll } from "@jest/globals";
 
 import { LoginPage } from "../../src/components/LoginPage";
+
+const originalConsoleError = console.error;
+const NAV_NOT_IMPLEMENTED = "Not implemented: navigation (except hash changes)";
+
+beforeAll(() => {
+  jest.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+    const firstArg = args[0] as any;
+
+    const msg =
+      typeof firstArg === "string"
+        ? firstArg
+        : firstArg && typeof firstArg.message === "string"
+        ? firstArg.message
+        : "";
+
+    if (msg.includes(NAV_NOT_IMPLEMENTED)) {
+      return;
+    }
+
+    (originalConsoleError as any)(...args);
+  });
+});
+
+afterAll(() => {
+  (console.error as jest.Mock).mockRestore();
+});
 
 describe("LoginPage", () => {
   it("renders title, description and login/signup buttons", () => {
