@@ -1,10 +1,9 @@
 from typing import Dict, List
 from uuid import UUID
 
+from app.models.message_reaction import MessageReaction
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.message_reaction import MessageReaction
 
 
 class MessageReactionRepository:

@@ -1,8 +1,7 @@
 from typing import Optional
 
-from pydantic import EmailStr, Field
-
 from app.schemas.user.user_base import UserBase
+from pydantic import EmailStr, Field
 
 
 class UserCreate(UserBase):

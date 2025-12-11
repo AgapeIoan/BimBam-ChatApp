@@ -1,6 +1,5 @@
 
 import pytest
-
 from app.api.v1.routers import auth as auth_router_module
 
 

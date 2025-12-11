@@ -2,9 +2,8 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from app.schemas.user.user_read import UserRead
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class FriendshipRead(BaseModel):

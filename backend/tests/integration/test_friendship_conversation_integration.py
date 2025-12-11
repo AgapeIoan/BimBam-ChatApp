@@ -1,12 +1,11 @@
 import pytest
-from helpers import _create_user
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.v1.deps import get_conversation_service
 from app.db import session as session_module
 from app.repositories.friendship_repository import FriendshipRepository
 from app.repositories.user_repository import UserRepository
 from app.services.friendship_service import FriendshipService
+from helpers import _create_user
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.asyncio

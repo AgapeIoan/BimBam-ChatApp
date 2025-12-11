@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 
 import pytest
-
 from app.utils.jwt_utils import create_access_token, decode_access_token
 
 

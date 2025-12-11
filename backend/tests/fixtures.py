@@ -3,16 +3,16 @@ import os
 from typing import Callable, Iterator, Optional
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
 from app.api.deps.websocket_auth import websocket_auth
 from app.db import session as session_module
 from app.db.base import Base
 from app.main import app
 from app.models.user import User
 from app.websockets.connection_manager import connection_manager
+from fastapi.testclient import TestClient
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
+                                    create_async_engine)
 from tests.helpers import _init_fake_redis
 
 # Ensure base env defaults for settings loading

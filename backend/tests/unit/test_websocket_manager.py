@@ -2,9 +2,8 @@ from typing import cast
 from uuid import uuid4
 
 import pytest
-from starlette.websockets import WebSocket
-
 from app.websockets.connection_manager import ConnectionManager
+from starlette.websockets import WebSocket
 
 
 class DummyWebSocket:

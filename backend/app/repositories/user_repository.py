@@ -1,10 +1,9 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
+from app.models.user import User
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.user import User
 
 
 class UserRepository:

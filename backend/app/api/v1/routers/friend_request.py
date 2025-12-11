@@ -1,11 +1,12 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
-
 from app.api.v1.deps import get_current_user, get_friend_request_service
-from app.schemas.friend_request.friend_request_create import FriendRequestCreate
-from app.schemas.friend_request.friend_request_response import FriendRequestResponse
+from app.schemas.friend_request.friend_request_create import \
+    FriendRequestCreate
+from app.schemas.friend_request.friend_request_response import \
+    FriendRequestResponse
 from app.services.friend_request_service import FriendRequestService
+from fastapi import APIRouter, Depends
 
 router = APIRouter(
     prefix="/friend-requests",

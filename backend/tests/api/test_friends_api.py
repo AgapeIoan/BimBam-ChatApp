@@ -1,6 +1,5 @@
-from helpers import _create_friendship_pair, _find_friend_conversation_route
-
 from app.utils.jwt_utils import create_access_token
+from helpers import _create_friendship_pair, _find_friend_conversation_route
 
 
 def test_list_friends_empty_by_default(client, user_factory):

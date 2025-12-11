@@ -4,7 +4,8 @@ from app.models.enums import FriendRequestStatus
 from app.repositories.friend_request_repository import FriendRequestRepository
 from app.repositories.friendship_repository import FriendshipRepository
 from app.repositories.user_repository import UserRepository
-from app.schemas.friend_request.friend_request_response import FriendRequestResponse
+from app.schemas.friend_request.friend_request_response import \
+    FriendRequestResponse
 from app.schemas.user.user_response import UserResponse
 from app.utils.errors.resource_not_found import ResourceNotFoundException
 from app.utils.errors.user_not_found_exception import UserNotFoundException

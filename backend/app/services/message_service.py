@@ -3,7 +3,8 @@ from uuid import UUID
 
 from app.core.redis_client import reset_unread
 from app.repositories.conversation_repository import ConversationRepository
-from app.repositories.message_reaction_repository import MessageReactionRepository
+from app.repositories.message_reaction_repository import \
+    MessageReactionRepository
 from app.repositories.message_repository import MessageRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.message.message_page import MessagePage

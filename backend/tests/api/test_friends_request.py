@@ -1,9 +1,8 @@
 import pytest
-from fastapi.testclient import TestClient
-
 from app.api.v1.deps import get_current_user
 from app.main import app
 from app.repositories.user_repository import UserRepository
+from fastapi.testclient import TestClient
 
 
 @pytest.mark.asyncio
