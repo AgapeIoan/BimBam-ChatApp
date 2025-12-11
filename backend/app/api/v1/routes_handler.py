@@ -6,8 +6,8 @@ from app.api.v1.routers import (
     debug_router,
     friend_request,
     friends,
-    users,
     messages,
+    users,
 )
 
 api_router = APIRouter()
