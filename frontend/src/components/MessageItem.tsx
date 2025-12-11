@@ -61,6 +61,27 @@ export function MessageItem({ message, onEdit, onReact, showSenderName = false }
     return editedAt.getTime() > createdAt.getTime();
   }, [createdAt, editedAt]);
 
+  const statusLabel = useMemo(() => {
+    switch (message.status) {
+      case 'read':
+        return '✓✓';
+      case 'delivered':
+        return '✓✓';
+      case 'sent':
+        return '✓';
+      case 'failed':
+        return '✕';
+      default:
+        return '';
+    }
+  }, [message.status]);
+
+  const statusClass = useMemo(() => {
+    if (message.status === 'failed') return 'text-red-500';
+    if (message.status === 'read') return 'text-blue-100';
+    return isMine ? 'text-gray-200' : 'text-gray-500';
+  }, [isMine, message.status]);
+
   const submitEdit = () => {
     if (text.trim() && text !== message.text) {
       onEdit(message.id, text.trim());
@@ -120,6 +141,11 @@ export function MessageItem({ message, onEdit, onReact, showSenderName = false }
               </p>
               <div className="flex items-center gap-2 mt-2 text-xs opacity-80">
                 <span>{formatTime(createdAt)}</span>
+                {isMine && statusLabel && (
+                  <span className={`flex items-center gap-1 ${statusClass}`}>
+                    <span className="text-[11px] leading-none">{statusLabel}</span>
+                  </span>
+                )}
                 <div className="flex gap-2">
                   {reactions.map((r) => (
                     <ReactionPill
