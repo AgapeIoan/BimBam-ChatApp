@@ -1,8 +1,8 @@
-import "@testing-library/jest-dom";
+import "@testing-library/jest-dom/vitest";
 import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, jest } from "@jest/globals";
+import { describe, it, expect, vi } from "vitest";
 
 import {
   FriendRequestsModal,
@@ -40,14 +40,14 @@ function createBaseProps(
 
   return {
     isOpen: true,
-    onClose: jest.fn(),
+    onClose: vi.fn(),
     incomingRequests,
     sentRequests,
-    onAcceptRequest: jest.fn(),
-    onDeclineRequest: jest.fn(),
-    onCancelRequest: jest.fn(),
-    onSendRequest: jest.fn(),
-    onSearchUsers: jest.fn().mockResolvedValue([] as UserSearchResult[]),
+    onAcceptRequest: vi.fn(),
+    onDeclineRequest: vi.fn(),
+    onCancelRequest: vi.fn(),
+    onSendRequest: vi.fn(),
+    onSearchUsers: vi.fn().mockResolvedValue([] as UserSearchResult[]),
     ...overrides,
   };
 }
@@ -89,14 +89,15 @@ describe("FriendRequestsModal", () => {
         username: "miruna",
         email: "miruna@example.com",
         avatar: "M",
+        avatarUrl: null,
         name: "Miruna C",
         isFriend: false,
         hasPendingRequest: false,
       },
     ];
 
-    const onSearchUsers = jest.fn().mockResolvedValue(result);
-    const onSendRequest = jest.fn();
+    const onSearchUsers = vi.fn().mockResolvedValue(result);
+    const onSendRequest = vi.fn();
     const props = createBaseProps({ onSearchUsers, onSendRequest });
 
     render(<FriendRequestsModal {...props} />);
@@ -119,7 +120,7 @@ describe("FriendRequestsModal", () => {
   });
 
   it('shows "No users found" when search returns empty array', async () => {
-    const onSearchUsers = jest.fn().mockResolvedValue([]);
+    const onSearchUsers = vi.fn().mockResolvedValue([]);
     const props = createBaseProps({ onSearchUsers });
 
     render(<FriendRequestsModal {...props} />);
@@ -168,8 +169,8 @@ describe("FriendRequestsModal", () => {
   });
 
   it("calls Accept and Decline handlers", async () => {
-    const onAcceptRequest = jest.fn();
-    const onDeclineRequest = jest.fn();
+    const onAcceptRequest = vi.fn();
+    const onDeclineRequest = vi.fn();
     const props = createBaseProps({ onAcceptRequest, onDeclineRequest });
 
     render(<FriendRequestsModal {...props} />);
@@ -188,7 +189,7 @@ describe("FriendRequestsModal", () => {
   });
 
   it("calls onCancelRequest for sent requests", async () => {
-    const onCancelRequest = jest.fn();
+    const onCancelRequest = vi.fn();
     const props = createBaseProps({ onCancelRequest });
 
     render(<FriendRequestsModal {...props} />);
@@ -201,25 +202,23 @@ describe("FriendRequestsModal", () => {
     expect(onCancelRequest).toHaveBeenCalledWith("req-2");
   });
 
-
   it("calls onClose when the X button is clicked", async () => {
-  const user = userEvent.setup();
-  const onClose = jest.fn();
-  const props = createBaseProps({ onClose });
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const props = createBaseProps({ onClose });
 
-  render(<FriendRequestsModal {...props} />);
+    render(<FriendRequestsModal {...props} />);
 
-  const closeButton = screen
-    .getAllByRole("button")
-    .find((btn) => btn.textContent === "") as HTMLButtonElement;
+    const closeButton = screen
+      .getAllByRole("button")
+      .find((btn) => btn.textContent === "") as HTMLButtonElement;
 
-  expect(closeButton).toBeDefined();
+    expect(closeButton).toBeDefined();
 
-  await user.click(closeButton);
+    await user.click(closeButton);
 
-  expect(onClose).toHaveBeenCalledTimes(1);
-});
-
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 
   it('shows "Already friends" label for users that are already friends', async () => {
     const result: UserSearchResult[] = [
@@ -235,7 +234,7 @@ describe("FriendRequestsModal", () => {
       },
     ];
 
-    const onSearchUsers = jest.fn().mockResolvedValue(result);
+    const onSearchUsers = vi.fn().mockResolvedValue(result);
     const props = createBaseProps({ onSearchUsers });
 
     render(<FriendRequestsModal {...props} />);
@@ -251,7 +250,9 @@ describe("FriendRequestsModal", () => {
     expect(screen.getByText("@bestie")).toBeInTheDocument();
     expect(screen.getByText("bestie@example.com")).toBeInTheDocument();
     expect(screen.getByText("Already friends")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /add/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /add/i })
+    ).not.toBeInTheDocument();
   });
 
   it('shows "Request sent" label for users with pending request', async () => {
@@ -268,7 +269,7 @@ describe("FriendRequestsModal", () => {
       },
     ];
 
-    const onSearchUsers = jest.fn().mockResolvedValue(result);
+    const onSearchUsers = vi.fn().mockResolvedValue(result);
     const props = createBaseProps({ onSearchUsers });
 
     render(<FriendRequestsModal {...props} />);
@@ -284,7 +285,9 @@ describe("FriendRequestsModal", () => {
     expect(screen.getByText("@almostfriend")).toBeInTheDocument();
     expect(screen.getByText("almost@example.com")).toBeInTheDocument();
     expect(screen.getByText("Request sent")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /add/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /add/i })
+    ).not.toBeInTheDocument();
   });
 
   it("renders avatar image when avatarUrl is provided and handles image error to show fallback avatar", async () => {
@@ -301,7 +304,7 @@ describe("FriendRequestsModal", () => {
       },
     ];
 
-    const onSearchUsers = jest.fn().mockResolvedValue(result);
+    const onSearchUsers = vi.fn().mockResolvedValue(result);
     const props = createBaseProps({ onSearchUsers });
 
     render(<FriendRequestsModal {...props} />);

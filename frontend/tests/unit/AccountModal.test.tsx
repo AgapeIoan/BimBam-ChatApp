@@ -1,8 +1,8 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, jest } from "@jest/globals";
-
+import { describe, it, expect, vi } from "vitest";
+import "@testing-library/jest-dom/vitest";
 import { AccountModal } from "../../src/components/AccountModal";
 import type { UserAccountDetails } from "../../src/types/user/userAccountDetails";
 
@@ -22,9 +22,9 @@ function renderModal(
   const account = createAccount();
   const defaultProps: React.ComponentProps<typeof AccountModal> = {
     isOpen: true,
-    onClose: jest.fn(),
+    onClose: vi.fn(),
     account,
-    onSave: jest.fn(),
+    onSave: vi.fn(),
   };
 
   const props = { ...defaultProps, ...propsOverrides };
@@ -42,9 +42,9 @@ describe("AccountModal", () => {
     const { container } = render(
       <AccountModal
         isOpen={false}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         account={createAccount()}
-        onSave={jest.fn()}
+        onSave={vi.fn()}
       />
     );
 
@@ -55,9 +55,7 @@ describe("AccountModal", () => {
     renderModal();
 
     expect(screen.getByText("Account Settings")).toBeInTheDocument();
-    expect(
-      screen.getByText(/You signed up with/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/You signed up with/i)).toBeInTheDocument();
     expect(screen.getByLabelText("Username")).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
   });
@@ -68,9 +66,9 @@ describe("AccountModal", () => {
     render(
       <AccountModal
         isOpen={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         account={account}
-        onSave={jest.fn()}
+        onSave={vi.fn()}
       />
     );
 
@@ -87,9 +85,9 @@ describe("AccountModal", () => {
     render(
       <AccountModal
         isOpen={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         account={account}
-        onSave={jest.fn()}
+        onSave={vi.fn()}
       />
     );
 
@@ -146,14 +144,14 @@ describe("AccountModal", () => {
 
     const saveButton = screen.getByRole("button", { name: /save changes/i });
     await user.click(saveButton);
-    
+
     expect(screen.getByText("Email is required")).toBeInTheDocument();
     expect(props.onSave).not.toHaveBeenCalled();
   });
 
   it("calls onSave with updated data and exits edit mode", async () => {
     const user = userEvent.setup();
-    const onSave = jest.fn();
+    const onSave = vi.fn();
     const account = createAccount({
       username: "olduser",
       email: "old@example.com",
@@ -162,7 +160,7 @@ describe("AccountModal", () => {
     render(
       <AccountModal
         isOpen={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         account={account}
         onSave={onSave}
       />
@@ -207,9 +205,9 @@ describe("AccountModal", () => {
     render(
       <AccountModal
         isOpen={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         account={account}
-        onSave={jest.fn()}
+        onSave={vi.fn()}
       />
     );
 
@@ -238,9 +236,9 @@ describe("AccountModal", () => {
     const { rerender } = render(
       <AccountModal
         isOpen={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         account={initialAccount}
-        onSave={jest.fn()}
+        onSave={vi.fn()}
       />
     );
 
@@ -255,9 +253,9 @@ describe("AccountModal", () => {
     rerender(
       <AccountModal
         isOpen={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         account={updatedAccount}
-        onSave={jest.fn()}
+        onSave={vi.fn()}
       />
     );
 
@@ -268,14 +266,14 @@ describe("AccountModal", () => {
 
   it("calls onClose when Close button is clicked in non-edit mode", async () => {
     const user = userEvent.setup();
-    const onClose = jest.fn();
+    const onClose = vi.fn();
 
     render(
       <AccountModal
         isOpen={true}
         onClose={onClose}
         account={createAccount()}
-        onSave={jest.fn()}
+        onSave={vi.fn()}
       />
     );
 

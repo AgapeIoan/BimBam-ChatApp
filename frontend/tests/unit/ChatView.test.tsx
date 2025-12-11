@@ -1,13 +1,13 @@
-import "@testing-library/jest-dom";
+import "@testing-library/jest-dom/vitest";
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect, beforeAll, beforeEach, jest } from "@jest/globals";
+import { describe, it, expect, beforeAll, beforeEach, vi } from "vitest";
 
 import { ChatView } from "../../src/components/ChatView";
 
-const scrollIntoViewMock = jest.fn();
+const scrollIntoViewMock = vi.fn();
 
-jest.mock("../../src/components/MessageItem", () => ({
+vi.mock("../../src/components/MessageItem", () => ({
   MessageItem: ({ message, showSenderName }: any) => (
     <div
       data-testid="message-item"
@@ -45,7 +45,7 @@ describe("ChatView (unit)", () => {
   ];
 
   it("afișează placeholder când nu există contact selectat", () => {
-    const onSendMessage = jest.fn();
+    const onSendMessage = vi.fn();
 
     render(
       <ChatView
@@ -61,7 +61,7 @@ describe("ChatView (unit)", () => {
   });
 
   it("afișează headerul cu numele contactului și statusul 'Active now' când contactul e online și nu e grup", () => {
-    const onSendMessage = jest.fn();
+    const onSendMessage = vi.fn();
 
     render(
       <ChatView
@@ -76,7 +76,7 @@ describe("ChatView (unit)", () => {
   });
 
   it("afișează statusul 'Offline' când contactul nu e online și nu e grup", () => {
-    const onSendMessage = jest.fn();
+    const onSendMessage = vi.fn();
 
     render(
       <ChatView
@@ -90,7 +90,7 @@ describe("ChatView (unit)", () => {
   });
 
   it("nu afișează statusul online/offline pentru grup", () => {
-    const onSendMessage = jest.fn();
+    const onSendMessage = vi.fn();
 
     render(
       <ChatView
@@ -105,7 +105,7 @@ describe("ChatView (unit)", () => {
   });
 
   it("randază un MessageItem pentru fiecare mesaj și setează showSenderName în funcție de isGroup", () => {
-    const onSendMessage = jest.fn();
+    const onSendMessage = vi.fn();
 
     const { rerender } = render(
       <ChatView
@@ -136,7 +136,7 @@ describe("ChatView (unit)", () => {
   });
 
   it("apelează scrollIntoView când lista de mesaje se schimbă", () => {
-    const onSendMessage = jest.fn();
+    const onSendMessage = vi.fn();
     const messages1 = [baseMessages[0]];
     const messages2 = [...baseMessages];
 
@@ -164,7 +164,7 @@ describe("ChatView (unit)", () => {
   });
 
   it("afișează typingLabel și indicatorul de typing când typingLabel este setat", () => {
-    const onSendMessage = jest.fn();
+    const onSendMessage = vi.fn();
 
     render(
       <ChatView
@@ -179,7 +179,7 @@ describe("ChatView (unit)", () => {
   });
 
   it("butonul de send este dezactivat când inputul este gol sau doar whitespace", () => {
-    const onSendMessage = jest.fn();
+    const onSendMessage = vi.fn();
 
     render(
       <ChatView

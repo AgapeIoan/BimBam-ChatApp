@@ -1,40 +1,44 @@
-import "@testing-library/jest-dom";
+import "@testing-library/jest-dom/vitest";
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, jest, beforeAll } from "@jest/globals";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 
 import { LoginPage } from "../../src/components/LoginPage";
 
 const originalConsoleError = console.error;
 const NAV_NOT_IMPLEMENTED = "Not implemented: navigation (except hash changes)";
 
+let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
 beforeAll(() => {
-  jest.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
-    const firstArg = args[0] as any;
+  consoleErrorSpy = vi
+    .spyOn(console, "error")
+    .mockImplementation((...args: unknown[]) => {
+      const firstArg = args[0] as any;
 
-    const msg =
-      typeof firstArg === "string"
-        ? firstArg
-        : firstArg && typeof firstArg.message === "string"
-        ? firstArg.message
-        : "";
+      const msg =
+        typeof firstArg === "string"
+          ? firstArg
+          : firstArg && typeof firstArg.message === "string"
+          ? firstArg.message
+          : "";
 
-    if (msg.includes(NAV_NOT_IMPLEMENTED)) {
-      return;
-    }
+      if (msg.includes(NAV_NOT_IMPLEMENTED)) {
+        return;
+      }
 
-    (originalConsoleError as any)(...args);
-  });
+      (originalConsoleError as any)(...args);
+    });
 });
 
 afterAll(() => {
-  (console.error as jest.Mock).mockRestore();
+  consoleErrorSpy.mockRestore();
 });
 
 describe("LoginPage", () => {
   it("renders title, description and login/signup buttons", () => {
-    const onSwitchToSignUp = jest.fn();
+    const onSwitchToSignUp = vi.fn();
 
     render(<LoginPage onSwitchToSignUp={onSwitchToSignUp} />);
 
@@ -52,7 +56,7 @@ describe("LoginPage", () => {
 
   it("calls onSwitchToSignUp when user clicks Sign up", async () => {
     const user = userEvent.setup();
-    const onSwitchToSignUp = jest.fn();
+    const onSwitchToSignUp = vi.fn();
 
     render(<LoginPage onSwitchToSignUp={onSwitchToSignUp} />);
 
@@ -64,7 +68,7 @@ describe("LoginPage", () => {
 
   it("calls Google login handler when button is clicked", async () => {
     const user = userEvent.setup();
-    const onSwitchToSignUp = jest.fn();
+    const onSwitchToSignUp = vi.fn();
 
     render(<LoginPage onSwitchToSignUp={onSwitchToSignUp} />);
 
@@ -77,9 +81,7 @@ describe("LoginPage", () => {
   });
 
   it("shows error message for authError = 'no_account'", () => {
-    render(
-      <LoginPage onSwitchToSignUp={() => {}} authError="no_account" />
-    );
+    render(<LoginPage onSwitchToSignUp={() => {}} authError="no_account" />);
 
     expect(
       screen.getByText(
@@ -89,21 +91,15 @@ describe("LoginPage", () => {
   });
 
   it("shows error message for authError = 'google_failed'", () => {
-    render(
-      <LoginPage onSwitchToSignUp={() => {}} authError="google_failed" />
-    );
+    render(<LoginPage onSwitchToSignUp={() => {}} authError="google_failed" />);
 
     expect(
-      screen.getByText(
-        "Google authentication failed. Please try again."
-      )
+      screen.getByText("Google authentication failed. Please try again.")
     ).toBeInTheDocument();
   });
 
   it("does not show error message when authError is null or undefined", () => {
-    const { rerender } = render(
-      <LoginPage onSwitchToSignUp={() => {}} />
-    );
+    const { rerender } = render(<LoginPage onSwitchToSignUp={() => {}} />);
 
     expect(
       screen.queryByText(
@@ -116,9 +112,7 @@ describe("LoginPage", () => {
       )
     ).not.toBeInTheDocument();
 
-    rerender(
-      <LoginPage onSwitchToSignUp={() => {}} authError={null} />
-    );
+    rerender(<LoginPage onSwitchToSignUp={() => {}} authError={null} />);
 
     expect(
       screen.queryByText(

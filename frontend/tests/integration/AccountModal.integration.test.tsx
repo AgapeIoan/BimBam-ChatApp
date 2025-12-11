@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import "@testing-library/jest-dom";
+import "@testing-library/jest-dom/vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, jest } from "@jest/globals";
+import { describe, it, expect } from "vitest";
 
 import { AccountModal } from "../../src/components/AccountModal";
 import type { UserAccountDetails } from "../../src/types/user/userAccountDetails";

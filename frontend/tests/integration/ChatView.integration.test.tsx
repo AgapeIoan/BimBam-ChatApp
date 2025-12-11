@@ -1,12 +1,13 @@
-import "@testing-library/jest-dom";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import "@testing-library/jest-dom/vitest";
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, jest, beforeEach, beforeAll } from "@jest/globals";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 
 import { ChatView } from "../../src/components/ChatView";
 
-jest.mock("../../src/components/MessageItem", () => ({
+vi.mock("../../src/components/MessageItem", () => ({
   MessageItem: ({ message, onEdit, onReact }: any) => (
     <div>
       <span>{message.text}</span>
@@ -29,7 +30,7 @@ jest.mock("../../src/components/MessageItem", () => ({
 }));
 
 beforeAll(() => {
-  (window.HTMLElement as any).prototype.scrollIntoView = jest.fn();
+  (window.HTMLElement as any).prototype.scrollIntoView = vi.fn();
 });
 
 describe("ChatView (integration)", () => {
@@ -50,17 +51,17 @@ describe("ChatView (integration)", () => {
     },
   ];
 
-  let onSendMessage: jest.Mock;
-  let onEditMessage: jest.Mock;
-  let onReact: jest.Mock;
-  let onTyping: jest.Mock;
+  let onSendMessage: ReturnType<typeof vi.fn>;
+  let onEditMessage: ReturnType<typeof vi.fn>;
+  let onReact: ReturnType<typeof vi.fn>;
+  let onTyping: ReturnType<typeof vi.fn>;
 
-    beforeEach(() => {
-      onSendMessage = jest.fn();
-      onEditMessage = jest.fn();
-      onReact = jest.fn();
-      onTyping = jest.fn();
-    });
+  beforeEach(() => {
+    onSendMessage = vi.fn();
+    onEditMessage = vi.fn();
+    onReact = vi.fn();
+    onTyping = vi.fn();
+  });
 
   it("trims the text, calls onSendMessage, and clears the input on submit", async () => {
     const user = userEvent.setup();
@@ -112,7 +113,7 @@ describe("ChatView (integration)", () => {
   });
 
   it("calls onTyping(true) immediately and onTyping(false) after 3 seconds of inactivity", () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
     render(
       <ChatView
@@ -130,16 +131,16 @@ describe("ChatView (integration)", () => {
     expect(onTyping).toHaveBeenCalledWith(true);
 
     act(() => {
-      jest.advanceTimersByTime(3000);
+      vi.advanceTimersByTime(3000);
     });
 
     expect(onTyping).toHaveBeenCalledWith(false);
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it("resets the typing timer if the user keeps typing", () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
     render(
       <ChatView
@@ -156,18 +157,18 @@ describe("ChatView (integration)", () => {
     fireEvent.change(input, { target: { value: "he" } });
 
     act(() => {
-      jest.advanceTimersByTime(2500);
+      vi.advanceTimersByTime(2500);
     });
 
     expect(onTyping).not.toHaveBeenCalledWith(false);
 
     act(() => {
-      jest.advanceTimersByTime(500);
+      vi.advanceTimersByTime(500);
     });
 
     expect(onTyping).toHaveBeenCalledWith(false);
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it("propagates onEdit from MessageItem to onEditMessage in props", async () => {

@@ -1,8 +1,8 @@
-import "@testing-library/jest-dom";
+import "@testing-library/jest-dom/vitest";
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, jest } from "@jest/globals";
+import { describe, it, expect, vi } from "vitest";
 
 import {
   FriendRequestsModal,
@@ -13,8 +13,8 @@ import {
 import * as friendRequestsService from "../../src/services/friendRequestsService";
 import * as userService from "../../src/services/userService";
 
-jest.mock("../../src/services/friendRequestsService");
-jest.mock("../../src/services/userService");
+vi.mock("../../src/services/friendRequestsService");
+vi.mock("../../src/services/userService");
 
 type UserSearchResult = Parameters<
   React.ComponentProps<typeof FriendRequestsModal>["onSearchUsers"]
@@ -48,11 +48,13 @@ function FriendRequestsContainer() {
   );
 }
 
-describe("FriendRequestsModal integration-ish", () => {
+type MockedFn = ReturnType<typeof vi.fn>;
+
+describe("FriendRequestsModal integration", () => {
   it("searches users via API and sends request, updating UI", async () => {
     const user = userEvent.setup();
 
-    (userService.searchUsers as jest.Mock).mockResolvedValue([
+    (userService.searchUsers as MockedFn).mockResolvedValue([
       {
         id: "user-1",
         username: "miruna",
@@ -61,7 +63,7 @@ describe("FriendRequestsModal integration-ish", () => {
       },
     ]);
 
-    (friendRequestsService.sendFriendRequest as jest.Mock).mockResolvedValue({
+    (friendRequestsService.sendFriendRequest as MockedFn).mockResolvedValue({
       id: "req-123",
       status: "pending",
       createdAt: new Date().toISOString(),
@@ -88,13 +90,14 @@ describe("FriendRequestsModal integration-ish", () => {
       expect(userService.searchUsers).toHaveBeenCalledWith("miruna", "username");
     });
 
-    
     expect(screen.getByText("@miruna")).toBeInTheDocument();
     expect(screen.getByText("miruna@example.com")).toBeInTheDocument();
 
     const addButton = screen.getByRole("button", { name: /add/i });
     await user.click(addButton);
 
-    expect(friendRequestsService.sendFriendRequest).toHaveBeenCalledWith("miruna@example.com");
+    expect(friendRequestsService.sendFriendRequest).toHaveBeenCalledWith(
+      "miruna@example.com"
+    );
   });
 });
