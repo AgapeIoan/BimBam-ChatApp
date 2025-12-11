@@ -30,24 +30,6 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(lifespan=lifespan, default_response_class=ORJSONResponse)
 
-raw_origins = [
-    origin.strip()
-    for origin in str(settings.AUTH.FRONTEND_ORIGIN).split(",")
-    if origin.strip()
-]
-# Normalise and add scheme variants (http/https) and strip trailing slashes
-allowed_origins_set = set()
-for origin in raw_origins or [settings.AUTH.FRONTEND_ORIGIN]:
-    normalized = origin.rstrip("/")
-    if normalized:
-        allowed_origins_set.add(normalized)
-        if normalized.startswith("https://"):
-            allowed_origins_set.add("http://" + normalized.removeprefix("https://"))
-        elif normalized.startswith("http://"):
-            allowed_origins_set.add("https://" + normalized.removeprefix("http://"))
-
-allowed_origins = list(allowed_origins_set)
-
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.AUTH.JWT_SECRET_KEY,
@@ -55,7 +37,7 @@ app.add_middleware(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=[settings.AUTH.FRONTEND_ORIGIN],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

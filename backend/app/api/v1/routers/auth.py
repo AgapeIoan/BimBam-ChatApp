@@ -30,43 +30,11 @@ oauth.register(
     }
 )
 
-def _parse_frontend_origins() -> list[str]:
-    origins = [
-        origin.strip()
-        for origin in str(settings.AUTH.FRONTEND_ORIGIN).split(",")
-        if origin.strip()
-    ]
-    return origins or [settings.AUTH.FRONTEND_ORIGIN]
-
-def set_auth_cookies_and_redirect(request: Request, user_id: str) -> RedirectResponse:
+def set_auth_cookies_and_redirect(user_id: str)-> RedirectResponse:
     token = create_access_token(data={"sub": user_id})
-    frontend_origins = _parse_frontend_origins()
-    redirect_target = frontend_origins[0]
+    response = RedirectResponse(url=settings.AUTH.FRONTEND_ORIGIN, status_code=302)
 
-    # Detect scheme from reverse proxy if present, otherwise from the request.
-    forwarded_proto = request.headers.get("x-forwarded-proto", "").split(",")[0].strip().lower()
-    scheme = forwarded_proto or request.url.scheme
-
-    # Determine host used for cookie attributes based on redirect target to avoid
-    # misclassifying prod as local when behind proxy.
-    redirect_host = redirect_target.split("://")[-1].split("/")[0].split(":")[0].lower()
-    is_local_host = redirect_host in {"localhost", "127.0.0.1", "0.0.0.0"}
-
-    # For cross-site usage we need SameSite=None and Secure. Browsers block
-    # SameSite=None without Secure.
-    samesite = "lax" if is_local_host else "none"
-    secure = scheme == "https"
-
-    response = RedirectResponse(url=redirect_target, status_code=302)
-
-    response.set_cookie(
-        key="access_token",
-        value=token,
-        httponly=True,
-        secure=secure,
-        samesite=samesite,
-        max_age=60 * 60 * 24,
-    )
+    response.set_cookie(key="access_token", value=token, httponly=True, secure=True, samesite="lax", max_age = 60*60*24)
 
     return response
 
@@ -120,7 +88,7 @@ async def google_callback(request: Request, session: AsyncSession = Depends(get_
                 avatar_url=avatar_url,
             )
 
-    return set_auth_cookies_and_redirect(request, str(user.id)) #type: ignore
+    return set_auth_cookies_and_redirect(str(user.id)) #type: ignore
 
 @router.get("/me")
 async def get_me(current_user=Depends(get_current_user)):
