@@ -1,4 +1,4 @@
-import type { UserSearchResult } from "../types/friendRequests";
+import type { UserSearchResult } from "../types/user/userSearchResult";
 
 export const mockUsers: UserSearchResult[] = [
   {

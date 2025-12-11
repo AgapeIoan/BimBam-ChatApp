@@ -48,3 +48,13 @@ async def search_by_username(
     if not users:
         return []
     return users
+
+
+@router.get("/search", response_model=List[UserResponse])
+async def search_users(
+    query: str = Query(..., min_length=2),
+    current_user: User = Depends(get_current_user),
+    user_service: UserService = Depends(get_user_service),
+):
+    users = await user_service.search_users(query, exclude_user_id=current_user.id, limit=20)
+    return [UserResponse.model_validate(u) for u in users]

@@ -14,7 +14,7 @@ class UserService:
 
     def _map_to_user_response(self, user: User):
         return UserResponse(
-            id=str(user.id),
+            id=user.id,
             email=user.email,
             username=user.username,
             avatarUrl=user.avatar_url,
@@ -69,6 +69,12 @@ class UserService:
         
         updated_user = await self.user_repo.update_username(user, new_username)
         return updated_user.username
+
+    async def search_users(self, query: str, *, exclude_user_id: UUID | None = None, limit: int = 20):
+        query = query.strip()
+        if len(query) < 2:
+            raise ValidationException("Search query must be at least 2 characters")
+        return await self.user_repo.search_by_query(query, limit=limit, exclude_user_id=exclude_user_id)
 
     async def search_users_by_email(
         self, query: str, user_email: str

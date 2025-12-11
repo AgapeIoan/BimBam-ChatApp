@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
@@ -33,6 +33,27 @@ class UserRepository:
         )
 
         return result.scalars().one_or_none()
+
+    async def search_by_query(
+        self,
+        query: str,
+        *,
+        limit: int = 20,
+        exclude_user_id: UUID | None = None,
+    ) -> list[User]:
+        pattern = f"%{query.lower()}%"
+        stmt = select(User).where(
+            or_(
+                User.username.ilike(pattern),
+                User.email.ilike(pattern),
+            )
+        )
+        if exclude_user_id:
+            stmt = stmt.where(User.id != exclude_user_id)
+
+        stmt = stmt.limit(limit)
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())
 
     async def create(
         self,

@@ -49,6 +49,17 @@ async def remove_reaction(
     return ReactionCounts(messageId=message_id, counts=counts)
 
 
+@router.get("/{message_id}/reactions/{emoji}/users", response_model=List[str])
+async def get_reaction_users(
+    message_id: UUID,
+    emoji: str,
+    message_service: MessageService = Depends(get_message_service),
+    current_user = Depends(get_current_user),
+):
+    users = await message_service.get_reaction_users_for_emoji(message_id, current_user.id, emoji)
+    return users
+
+
 @router.patch("/{message_id}", response_model=MessageRead)
 async def edit_message(
     message_id: UUID,

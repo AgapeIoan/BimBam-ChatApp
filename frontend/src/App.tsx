@@ -136,7 +136,7 @@ export default function App() {
         />
       )}
 
-      <ChatApp onLogout={handleLogout} />
+      {user && <ChatApp onLogout={handleLogout} currentUser={user} />}
     </>
   );
 }

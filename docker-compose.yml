@@ -33,6 +33,9 @@ services:
     ports:
       - "5173:5173"
     restart: unless-stopped
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - VITE_WS_URL=ws://localhost:8000/ws
     
 
 volumes:

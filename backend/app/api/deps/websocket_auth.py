@@ -16,6 +16,14 @@ settings = get_settings()
 
 
 def _extract_token(websocket: WebSocket) -> Optional[str]:
+    """
+    Try to locate the JWT provided by the user for WebSocket auth.
+
+    Priority order:
+    1) Explicit query param (?token=...)
+    2) Authorization header (Bearer ...)
+    3) access_token cookie (so HttpOnly session cookies work over WS)
+    """
     token = websocket.query_params.get("token")
     auth_header = websocket.headers.get("Authorization")
 
@@ -25,7 +33,11 @@ def _extract_token(websocket: WebSocket) -> Optional[str]:
             return parts[1]
         return auth_header
 
-    return token
+    if token:
+        return token
+
+    # Fallback to session cookie so clients with HttpOnly cookies can connect without exposing the token to JS
+    return websocket.cookies.get("access_token")
 
 
 async def websocket_auth(

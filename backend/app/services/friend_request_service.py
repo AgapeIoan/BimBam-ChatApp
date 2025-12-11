@@ -31,13 +31,13 @@ class FriendRequestService:
             status=fr.status,
             createdAt=fr.created_at,
             fromUser=UserResponse(
-                id=str(fr.sender.id),
+                id=fr.sender.id,
                 email=fr.sender.email,
                 username=fr.sender.username,
                 avatarUrl=fr.sender.avatar_url,
             ),
             toUser=UserResponse(
-                id=str(fr.receiver.id),
+                id=fr.receiver.id,
                 email=fr.receiver.email,
                 username=fr.receiver.username,
                 avatarUrl=fr.receiver.avatar_url,

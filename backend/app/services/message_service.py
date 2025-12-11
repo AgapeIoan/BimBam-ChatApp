@@ -147,8 +147,11 @@ class MessageService:
             limit=limit,
             before_id=before_id,
         )
-
-        return [MessageRead.model_validate(m) for m in messages]
+        counts = await self.reaction_repo.get_counts_for_messages([m.id for m in messages])
+        return [
+            MessageRead.model_validate(m).model_copy(update={"reactions": counts.get(m.id, {})})
+            for m in messages
+        ]
 
     # for infinite scroll UI
     async def get_message_page(
@@ -165,6 +168,7 @@ class MessageService:
             limit=limit,
             before_id=before_id,
         )
+        counts = await self.reaction_repo.get_counts_for_messages([m.id for m in messages])
 
         if not messages:
             return MessagePage(
@@ -189,7 +193,10 @@ class MessageService:
 
         return MessagePage(
             conversation_id=conversation_id,
-            messages=[MessageRead.model_validate(m) for m in messages],
+            messages=[
+                MessageRead.model_validate(m).model_copy(update={"reactions": counts.get(m.id, {})})
+                for m in messages
+            ],
             has_more=has_more,
             next_before_id=next_before_id,
         )
@@ -260,3 +267,13 @@ class MessageService:
 
         reactions = await self.reaction_repo.get_reactions(message_id)
         return reactions
+
+    async def get_reaction_users_for_emoji(self, message_id: UUID, user_id: UUID, emoji: str) -> List[str]:
+        msg = await self.message_repo.get_by_id(message_id)
+        if not msg:
+            raise ResourceNotFoundException("Message not found")
+
+        await self._ensure_member(msg.conversation_id, user_id)
+
+        usernames_by_emoji = await self.reaction_repo.get_usernames_grouped_by_emoji(message_id)
+        return usernames_by_emoji.get(emoji, [])

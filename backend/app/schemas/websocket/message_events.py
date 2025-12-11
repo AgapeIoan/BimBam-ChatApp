@@ -39,6 +39,11 @@ class MessageDeliveredPayload(BaseModel):
     read: bool = Field(..., alias="read")
     edited_at: Optional[datetime] = Field(None, alias="editedAt")
     edited_by_id: Optional[UUID] = Field(None, alias="editedById")
+    sender_name: Optional[str] = Field(None, alias="senderName")
+    sender_username: Optional[str] = Field(None, alias="senderUsername")
+    sender_email: Optional[str] = Field(None, alias="senderEmail")
+    sender_avatar_url: Optional[str] = Field(None, alias="senderAvatarUrl")
+    room_id: Optional[str] = Field(None, alias="roomId")
 
 
 class MessageAckPayload(BaseModel):

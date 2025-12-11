@@ -10,4 +10,9 @@ export default defineConfig({
       },
     }),
   ],
+  // @ts-expect-error Vitest config field
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.ts',
+  },
 })

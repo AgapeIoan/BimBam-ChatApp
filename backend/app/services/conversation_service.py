@@ -38,22 +38,29 @@ class ConversationService:
 
         return await self.conversation_repo.get_or_create_dm(user_a_id, user_b_id)
 
-    async def create_group(self, creator_id: str, name: str, member_ids: List[str]) -> Conversation:
+    async def create_group(self, creator_id: UUID, name: str, participant_ids: List[UUID]) -> Conversation:
         if not name:
             raise ValidationException("Group name is required")
 
+        # Deduplicate and exclude the creator
+        participants = {uid for uid in participant_ids if uid != creator_id}
+
+        if not participants:
+            raise ValidationException("Add at least one member to the group")
+
         # Validate all members exist
-        for uid in member_ids:
+        for uid in participants:
             if not await self.user_repo.get_by_id(uid):
                 raise UserNotFoundException(f"User {uid} not found")
 
         conversation = await self.conversation_repo.create_group(name, creator_id)
 
         # Add invited members
-        for uid in member_ids:
+        for uid in participants:
             await self.conversation_repo.add_member(conversation.id, uid)
 
-        return conversation
+        refreshed = await self.conversation_repo.get_by_id(conversation.id)
+        return refreshed or conversation
 
     async def add_member(self, conversation_id, user_id):
         conv = await self.conversation_repo.get_by_id(conversation_id)

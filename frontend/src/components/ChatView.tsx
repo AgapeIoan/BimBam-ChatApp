@@ -1,22 +1,24 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useRef, useEffect } from 'react';
-import { Send, Check, CheckCheck, XCircle } from 'lucide-react';
-import type { Message } from '../types/conversation/chat';
-import type { FriendListItem } from '../types/friend/friendListItem';
+import { Send } from 'lucide-react';
+import type { Contact, Message } from './ChatApp';
 import { MessageItem } from './MessageItem';
 
 interface ChatViewProps {
-  contact?: FriendListItem
+  contact?: Contact;
   messages: Message[];
   onSendMessage: (text: string) => void;
   onEditGroup?: (conversationId: string) => void;
   onEditMessage?: (messageId: string, newText: string) => void;
   onReact?: (messageId: string, emoji: string) => void;
+  typingLabel?: string;
+  onTyping?: (isTyping: boolean) => void;
 }
 
-export function ChatView({ contact, messages, onSendMessage, onEditMessage, onReact }: ChatViewProps) {
+export function ChatView({ contact, messages, onSendMessage, onEditMessage, onReact, typingLabel, onTyping }: ChatViewProps) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<number | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -31,6 +33,18 @@ export function ChatView({ contact, messages, onSendMessage, onEditMessage, onRe
     if (inputValue.trim()) {
       onSendMessage(inputValue.trim());
       setInputValue('');
+      if (onTyping) onTyping(false);
+    }
+  };
+
+  const handleInputChange = (value: string) => {
+    setInputValue(value);
+    if (onTyping) {
+      onTyping(true);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = window.setTimeout(() => {
+        onTyping(false);
+      }, 3000);
     }
   };
 
@@ -56,23 +70,19 @@ export function ChatView({ contact, messages, onSendMessage, onEditMessage, onRe
         <div className="flex items-center gap-3">
           <div className="relative">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white">
-              {contact.friend.avatarUrl ? (
-                <img
-                  src={contact.friend.avatarUrl}
-                  alt={`${contact.friend.username}'s avatar`}
-                  className="w-10 h-10 rounded-full"
-                />
-              ) : (
-                contact.friend.username.charAt(0).toUpperCase()
-              )}
+              {contact.avatar}
             </div>
-            {contact.isOnline && (
+            {contact.online && (
               <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
             )}
           </div>
           <div>
-            <h2 className="text-gray-900">{contact.friend.username}</h2>
-            <p className="text-gray-500 text-sm">{contact.friend.lastSeen ? 'Active now' : 'Offline'}</p>
+            <h2 className="text-gray-900">{contact.name}</h2>
+            {!contact.isGroup && (
+              <p className="text-gray-500 text-sm">
+                {contact.online ? 'Active now' : 'Offline'}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -83,6 +93,7 @@ export function ChatView({ contact, messages, onSendMessage, onEditMessage, onRe
           <MessageItem
             key={message.id}
             message={message}
+            showSenderName={Boolean(contact?.isGroup)}
             onEdit={(id, newText) => onEditMessage?.(id, newText)}
             onReact={(id, emoji) => onReact?.(id, emoji)}
           />
@@ -92,11 +103,22 @@ export function ChatView({ contact, messages, onSendMessage, onEditMessage, onRe
 
       {/* Input */}
       <div className="p-4 border-t border-gray-200 bg-white">
+        {typingLabel && (
+          <div className="px-2 pb-2 text-sm text-gray-500 flex items-center gap-2">
+            <span className="flex gap-1 items-end">
+              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.2s]" />
+              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.05s]" />
+              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" />
+            </span>
+            {typingLabel}
+          </div>
+        )}
         <form onSubmit={handleSend} className="flex items-center gap-2">
           <input
             type="text"
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onBlur={() => onTyping?.(false)}
             placeholder="Type a message..."
             className="flex-1 px-4 py-3 bg-gray-100 border-0 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
           />

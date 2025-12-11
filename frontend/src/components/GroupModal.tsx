@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { X, Users } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Search, X, Users } from "lucide-react";
 import type { FriendListItem } from "../types/friend/friendListItem";
 
 interface GroupModalProps {
@@ -26,8 +26,9 @@ export function GroupModal({
     Set<string>
   >(new Set(initialMemberIds));
   const [searchQuery, setSearchQuery] = useState("");
+  const [avatarErrors, setAvatarErrors] = useState<Record<string, boolean>>({});
 
-    useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setGroupName(initialName);
@@ -61,19 +62,22 @@ export function GroupModal({
     onClose();
   };
 
-  const filteredFriends = friends
-    .filter((friend) =>
-      friend.friend.username
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase()),
-    )
-    .sort((a, b) => {
-      const aSelected = selectedFriends.has(a.friend.id);
-      const bSelected = selectedFriends.has(b.friend.id);
-
-      if (aSelected === bSelected) return 0;
-      return aSelected ? -1 : 1;
-    });
+  const filteredFriends = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return friends
+      .filter((friend) => {
+        if (!q) return true;
+        const username = friend.friend.username ?? "";
+        const email = friend.friend.email ?? "";
+        return `${username} ${email}`.toLowerCase().includes(q);
+      })
+      .sort((a, b) => {
+        const aSelected = selectedFriends.has(a.friend.id);
+        const bSelected = selectedFriends.has(b.friend.id);
+        if (aSelected === bSelected) return 0;
+        return aSelected ? -1 : 1;
+      });
+  }, [friends, searchQuery, selectedFriends]);
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
@@ -110,7 +114,7 @@ export function GroupModal({
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
               placeholder="Enter group name"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-12 px-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -125,21 +129,22 @@ export function GroupModal({
           )}
 
           {/* Search + Friends list */}
-          <div>
-            <label className="block text-sm text-gray-700 mb-2">
-              {mode === "create"
-                ? "Add Members"
-                : "Edit Members"}
+          <div className="space-y-4">
+            <label className="block text-sm text-gray-700 mb-4">
+              {mode === "create" ? "Add Members" : "Edit Members"}
             </label>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search friends..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
-            />
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search friends..."
+                className="w-full h-12 pl-11 pr-4 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
 
-            <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-hide">
+            <div className="max-h-72 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50/70 p-3 space-y-3 scrollbar-hide">
               {filteredFriends.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gray-500">
@@ -150,49 +155,57 @@ export function GroupModal({
                 </div>
               ) : (
                 filteredFriends.map((friend) => {
-                  const isSelected = selectedFriends.has(
-                    friend.friend.id,
-                  );
+                  const isSelected = selectedFriends.has(friend.friend.id);
+                  const avatarUrl = friend.friend.avatarUrl || undefined;
+                  const displayName = friend.friend.username || friend.friend.email || "User";
+                  const initials = displayName
+                    .split(/[\s@._-]+/)
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((p) => p[0])
+                    .join("")
+                    .toUpperCase() || "??";
                   return (
                     <button
                       key={friend.friend.id}
-                      onClick={() =>
-                        handleToggleFriend(friend.friend.id)
-                      }
-                      className={`w-full p-3 rounded-lg border transition-all flex items-center gap-3 ${
+                      onClick={() => handleToggleFriend(friend.friend.id)}
+                      className={`w-full px-4 py-3 rounded-lg border transition-all flex items-center justify-between gap-4 ${
                         isSelected
-                          ? "bg-blue-50 border-blue-300"
+                          ? "bg-blue-50 border-blue-300 shadow-sm"
                           : "bg-white border-gray-200 hover:bg-gray-50"
                       }`}
                     >
-                      {/* Avatar */}
-                      {friend.friend.avatarUrl ? (
-                        <img
-                          src={friend.friend.avatarUrl}
-                          alt={friend.friend.username}
-                          className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white flex-shrink-0">
-                          {friend.friend.username
-                            .substring(0, 2)
-                            .toUpperCase()}
-                        </div>
-                      )}
+                      {/* Avatar + Info */}
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {avatarUrl && !avatarErrors[friend.friend.id] ? (
+                          <img
+                            src={avatarUrl}
+                            alt={displayName}
+                            className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = "none";
+                              setAvatarErrors((prev) => ({ ...prev, [friend.friend.id]: true }));
+                            }}
+                          />
+                        ) : (
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white flex-shrink-0">
+                            {initials}
+                          </div>
+                        )}
 
-                      {/* Info */}
-                      <div className="flex-1 text-left min-w-0">
-                        <p className="text-gray-900 truncate">
-                          {friend.friend.username}
-                        </p>
-                        <p className="text-sm text-gray-500 truncate">
-                          {friend.friend.email}
-                        </p>
+                        <div className="flex-1 text-left min-w-0">
+                          <p className="text-gray-900 truncate">
+                            {displayName}
+                          </p>
+                          <p className="text-sm text-gray-500 truncate">
+                            {friend.friend.email}
+                          </p>
+                        </div>
                       </div>
 
-                      {/* Checkbox vizual */}
+                      {/* Checkbox visual */}
                       <div
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${
                           isSelected
                             ? "bg-blue-600 border-blue-600"
                             : "border-gray-300"
