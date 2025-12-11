@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import ReactionPicker from './ReactionPicker';
+import { fetchReactionUsers } from '../api';
 
 interface Reaction {
   emoji: string;
   count: number;
   reactedByMe?: boolean;
+  users?: string[];
 }
 
 interface MessageItemProps {
@@ -120,13 +122,15 @@ export function MessageItem({ message, onEdit, onReact, showSenderName = false }
                 <span>{formatTime(createdAt)}</span>
                 <div className="flex gap-2">
                   {reactions.map((r) => (
-                    <button
+                    <ReactionPill
                       key={r.emoji}
-                      onClick={() => onReact(message.id, r.emoji)}
-                      className="text-sm bg-gray-100 px-2 py-1 rounded-full"
-                    >
-                      {r.emoji} {r.count}
-                    </button>
+                      emoji={r.emoji}
+                      count={r.count}
+                      users={r.users || []}
+                      onReact={() => onReact(message.id, r.emoji)}
+                      messageId={String(message.id)}
+                      inverted={isMine}
+                    />
                   ))}
                 </div>
                 <div className="ml-auto flex items-center gap-2 text-[11px]">
@@ -175,3 +179,94 @@ export function MessageItem({ message, onEdit, onReact, showSenderName = false }
 }
 
 export default MessageItem;
+
+type ReactionPillProps = {
+  emoji: string;
+  count: number;
+  users: string[];
+  onReact: () => void;
+  messageId: string;
+  inverted?: boolean; // if message is mine, adjust colors slightly
+};
+
+function ReactionPill({ emoji, count, users, onReact, messageId, inverted }: ReactionPillProps) {
+  const [isHovering, setIsHovering] = useState(false);
+  const [enterTimer, setEnterTimer] = useState<number | null>(null);
+  const [leaveTimer, setLeaveTimer] = useState<number | null>(null);
+  const [loadedUsers, setLoadedUsers] = useState<string[] | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  return (
+    <div
+      className="relative inline-block"
+      onMouseEnter={async () => {
+        // small delay to avoid flicker when moving fast across reactions
+        if (leaveTimer) {
+          window.clearTimeout(leaveTimer);
+          setLeaveTimer(null);
+        }
+        const t = window.setTimeout(() => setIsHovering(true), 100);
+        setEnterTimer(t);
+        // Always refetch on hover; no caching so updates reflect immediately
+        try {
+          setLoadedUsers(null);
+          if (abortRef.current) {
+            abortRef.current.abort();
+          }
+          const ctrl = new AbortController();
+          abortRef.current = ctrl;
+          const list = await fetchReactionUsers(messageId, emoji, { signal: ctrl.signal });
+          setLoadedUsers(Array.isArray(list) ? list : []);
+        } catch (e) {
+          // ignore errors for hover fetch; keep tooltip empty
+        }
+      }}
+      onMouseLeave={() => {
+        if (enterTimer) {
+          window.clearTimeout(enterTimer);
+          setEnterTimer(null);
+        }
+        // small grace period to avoid flicker when moving between pills
+        const t = window.setTimeout(() => setIsHovering(false), 120);
+        setLeaveTimer(t);
+        if (abortRef.current) {
+          abortRef.current.abort();
+          abortRef.current = null;
+        }
+        // Clear fetched users so next hover re-fetches
+        setLoadedUsers(null);
+      }}
+      onFocus={() => setIsHovering(true)}
+      onBlur={() => setIsHovering(false)}
+    >
+      <button
+        onClick={onReact}
+        aria-haspopup="dialog"
+        aria-expanded={isHovering ? 'true' : 'false'}
+        className={
+          `text-sm px-2 py-1 rounded-full transition-colors ` +
+          (inverted ? 'bg-blue-500/20 text-white hover:bg-blue-500/30' : 'bg-gray-100 text-gray-900 hover:bg-gray-200')
+        }
+      >
+        {emoji} {count}
+      </button>
+
+      {isHovering && (users?.length || loadedUsers?.length) ? (
+        <div
+          className={
+            `pointer-events-none absolute left-1/2 -translate-x-1/2 mt-2 z-50 w-max max-w-xs ` +
+            `rounded-md shadow-lg border will-change-transform ` +
+            (inverted ? 'bg-white text-gray-900 border-gray-200' : 'bg-white text-gray-900 border-gray-200')
+          }
+          role="tooltip"
+        >
+          <div className="px-3 py-2 text-xs leading-5 max-h-40 overflow-auto">
+            {((loadedUsers && loadedUsers.length) ? loadedUsers : (users || [])).map((u, i) => (
+              <div key={i}>{u}</div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}

@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.message_reaction import MessageReaction
+from app.models.user import User
 
 
 class MessageReactionRepository:
@@ -82,3 +83,21 @@ class MessageReactionRepository:
             mid = UUID(str(mid))
             counts.setdefault(mid, {})[emoji] = int(cnt)
         return counts
+
+    async def get_usernames_grouped_by_emoji(self, message_id: UUID) -> Dict[str, List[str]]:
+        """
+        Return a mapping of emoji -> list of usernames who reacted with that emoji
+        for the given message.
+        """
+        q = (
+            select(MessageReaction.emoji, User.username)
+            .join(User, User.id == MessageReaction.user_id)
+            .where(MessageReaction.message_id == message_id)
+            .order_by(MessageReaction.emoji.asc(), User.username.asc())
+        )
+        result = await self._session.execute(q)
+        rows = result.all()
+        grouped: Dict[str, List[str]] = {}
+        for emoji, username in rows:
+            grouped.setdefault(emoji, []).append(username)
+        return grouped
