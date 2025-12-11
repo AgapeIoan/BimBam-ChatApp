@@ -20,7 +20,10 @@ export interface Message {
   status?: 'sent' | 'delivered' | 'read' | 'failed';
   editedAt?: string | null;
   editedById?: string | null;
-  reactions?: { emoji: string; count: number; reactedByMe?: boolean }[];
+  reactions?: { emoji: string; count: number; reactedByMe?: boolean; users?: string[] }[];
+  // When present, each reaction can also include usernames for tooltips
+  // e.g., { emoji: "👍", count: 3, users: ["anna", "bob", "carol"] }
+  // The UI reads these to show who reacted on hover.
   senderId?: string;
   senderName?: string;
   senderAvatarUrl?: string | null;
@@ -595,10 +598,14 @@ export function ChatApp({ onLogout, currentUser }: { onLogout: () => void; curre
   const handleReactionEvent = useCallback((data: any) => {
     const mid = String(data.messageId || data.message_id || '');
     const counts = data.counts || {};
-    const reactions = overlayMyReactions(
-      Object.keys(counts).map((k) => ({ emoji: k, count: counts[k] })),
-      mid
-    );
+    const usersByEmoji = data.users || {};
+    // Build reactions with users list for hover tooltip
+    const rawReactions = Object.keys(counts).map((emoji) => ({
+      emoji,
+      count: counts[emoji],
+      users: Array.isArray(usersByEmoji[emoji]) ? usersByEmoji[emoji] : [],
+    }));
+    const reactions = overlayMyReactions(rawReactions, mid);
     setMessages((prev) => {
       const newPrev = { ...prev };
       for (const cid of Object.keys(newPrev)) {
