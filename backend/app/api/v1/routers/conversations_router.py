@@ -8,6 +8,10 @@ from app.models.user import User
 from app.schemas.conversation.conversation_create import ConversationCreate
 from app.schemas.conversation.conversation_preview import ConversationPreview
 from app.schemas.conversation.conversation_read import ConversationRead
+from app.schemas.conversation.conversation_summary import (
+    ConversationSummaryRequest,
+    ConversationSummaryResponse,
+)
 from app.schemas.message.message_page import MessagePage
 from app.services.conversation_service import ConversationService
 from app.services.message_service import MessageService
@@ -55,7 +59,7 @@ async def list_conversation_messages(
     before_id: Optional[UUID] = Query(None, alias="beforeId"),
     current_user: User = Depends(get_current_user),
     message_service: MessageService = Depends(get_message_service),
-):
+    ):
     """
     Fetch paginated messages for a conversation (oldest -> newest).
     """
@@ -65,3 +69,21 @@ async def list_conversation_messages(
         limit=limit,
         before_id=before_id,
     )
+
+
+@router.post("/{conversation_id}/summary", response_model=ConversationSummaryResponse)
+async def summarize_conversation(
+    conversation_id: UUID,
+    body: ConversationSummaryRequest,
+    current_user: User = Depends(get_current_user),
+    message_service: MessageService = Depends(get_message_service),
+):
+    """
+    Generate an AI summary of recent messages for a conversation.
+    """
+    summary = await message_service.summarize_conversation(
+        conversation_id=conversation_id,
+        user_id=current_user.id,
+        hours=body.hours,
+    )
+    return ConversationSummaryResponse(summary=summary)

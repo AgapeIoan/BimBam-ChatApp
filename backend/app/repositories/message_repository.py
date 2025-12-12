@@ -97,6 +97,36 @@ class MessageRepository:
         messages.reverse()
         return messages
 
+    async def get_messages_since(
+        self,
+        *,
+        conversation_id: UUID,
+        since: datetime,
+        limit: int = 100,
+    ) -> List[Message]:
+        """
+        Fetch messages created at or after `since`, capped by `limit`, newest -> oldest.
+        Reversed before returning so the caller receives chronological order.
+        """
+        if since.tzinfo is None:
+            since = since.replace(tzinfo=timezone.utc)
+
+        query = (
+            select(Message)
+            .where(
+                Message.conversation_id == conversation_id,
+                Message.created_at >= since,
+            )
+            .order_by(Message.created_at.desc())
+            .limit(limit)
+            .options(selectinload(Message.sender))
+        )
+
+        result = await self._session.execute(query)
+        messages = list(result.scalars().all())
+        messages.reverse()
+        return messages
+
     async def get_by_id(self, message_id: UUID) -> Optional[Message]:
         result = await self._session.execute(
             select(Message).where(Message.id == message_id).options(selectinload(Message.sender))

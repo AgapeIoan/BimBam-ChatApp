@@ -1,5 +1,9 @@
+import logging
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from uuid import UUID
+
+from openai import AsyncOpenAI
 
 from app.core.redis_client import reset_unread
 from app.repositories.conversation_repository import ConversationRepository
@@ -10,8 +14,12 @@ from app.schemas.message.message_page import MessagePage
 from app.schemas.message.message_read import MessageRead
 from app.utils.errors.database_exception import DatabaseException
 from app.utils.errors.resource_not_found import ResourceNotFoundException
+from app.utils.errors.service_unavailable_exception import ServiceUnavailableException
 from app.utils.errors.unauthorized_exception import UnauthorizedException
 from app.utils.errors.validation_exception import ValidationException
+
+
+logger = logging.getLogger(__name__)
 
 
 class MessageService:
@@ -21,11 +29,28 @@ class MessageService:
         conversation_repo: ConversationRepository,
         user_repo: UserRepository,
         reaction_repo: MessageReactionRepository,
+        openai_client: AsyncOpenAI | None = None,
+        model_name: str = "gpt-4o-mini",
     ):
         self.message_repo = message_repo
         self.conversation_repo = conversation_repo
         self.user_repo = user_repo
         self.reaction_repo = reaction_repo
+        self.openai_client = openai_client
+        self.model_name = model_name
+        self._summary_message_cap = 100
+        self._spammy_tokens = {
+            "ok",
+            "k",
+            "kk",
+            "okey",
+            "lmao",
+            "lol",
+            "haha",
+            "thx",
+            "thanks",
+            "👍",
+        }
 
     async def _ensure_conversation_exists(self, conversation_id: UUID):
         conv = await self.conversation_repo.get_by_id(conversation_id)
@@ -40,6 +65,27 @@ class MessageService:
         if not is_member:
             raise UnauthorizedException("You are not part of this conversation.")
         return conv
+
+    def _format_transcript(self, messages) -> list[str]:
+        lines: list[str] = []
+        for msg in messages:
+            content = (msg.content or "").strip()
+            if not content:
+                continue
+
+            compact = " ".join(content.split())
+            lowered = compact.lower()
+            if len(compact) <= 2 or lowered in self._spammy_tokens:
+                continue
+
+            sender = getattr(msg, "sender", None)
+            sender_label = (
+                getattr(sender, "username", None)
+                or getattr(sender, "email", None)
+                or "Someone"
+            )
+            lines.append(f"User {sender_label}: {compact}")
+        return lines
 
     async def send_message(
         self,
@@ -200,7 +246,72 @@ class MessageService:
             has_more=has_more,
             next_before_id=next_before_id,
         )
-    
+
+    async def summarize_conversation(self, conversation_id: UUID, user_id: UUID, hours: int | None) -> str:
+        if hours is not None and hours < 1:
+            raise ValidationException("Hours must be at least 1")
+        await self._ensure_member(conversation_id, user_id)
+
+        if not self.openai_client:
+            logger.error("OpenAI client is not configured; cannot summarize conversation %s", conversation_id)
+            raise ServiceUnavailableException("Service unavailable")
+
+        if hours is None:
+            # Fetch most recent chunk
+            messages = await self.message_repo.get_messages(
+                conversation_id=conversation_id,
+                limit=self._summary_message_cap,
+            )
+        else:
+            threshold = datetime.now(timezone.utc) - timedelta(hours=hours)
+            messages = await self.message_repo.get_messages_since(
+                conversation_id=conversation_id,
+                since=threshold,
+                limit=self._summary_message_cap,
+            )
+
+        transcript_lines = self._format_transcript(messages)
+        if not transcript_lines:
+            return "Nothing significant happened."
+
+        transcript = "\n".join(transcript_lines[-self._summary_message_cap :])
+
+        system_prompt = (
+            "You are an expert Chat Summarizer for trip planning. Extract plans, decisions, and key info from the provided transcript.\n\n"
+            "RULES:\n"
+            "1) Combine fragments: users may say \"hai maine\" then \"la 10\" then \"Auchan\" or \"cabana\" in separate messages. Merge them into one coherent point.\n"
+            "2) Keep any references to destination/cabin, lodging links, dates/times, meeting points, routes/transport, supplies/food lists, costs, and who is going. Do NOT drop short planning fragments.\n"
+            "3) Ignore only pure noise (lol, haha, random letters). Anything that sounds like planning (time, place, route, cabin, shopping list) must be kept.\n"
+            "4) Output a concise bulleted list (each bullet starts with '-'). Cover: purpose/destination (e.g., cabana), lodging/link, when, where to meet, how to get there, who confirmed, what to bring/buy, and any open questions. If these items exist in the transcript, include them—do NOT omit destination/cabin details even if time/meeting exists.\n"
+            "5) Detect the dominant language of the conversation (e.g., Romanian) and write the summary in that language.\n"
+            "6) If multiple planning items exist, produce multiple bullets (do not collapse everything into a single meeting note)."
+        )
+        user_prompt = (
+            f"Summarize what happened in the last {hours} hours.\n\n"
+            f"Transcript:\n{transcript}"
+        )
+
+        try:
+            completion = await self.openai_client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.2,
+                max_tokens=240,
+            )
+        except Exception as exc:
+            logger.exception("Failed to generate summary for conversation %s", conversation_id)
+            raise ServiceUnavailableException("Service unavailable") from exc
+
+        summary = (
+            completion.choices[0].message.content.strip()
+            if getattr(completion, "choices", None)
+            else ""
+        )
+        return summary or "Nothing significant happened."
+
     async def edit_message(self, message_id: UUID, editor_id: UUID, new_content: str):
 
         if new_content is None:

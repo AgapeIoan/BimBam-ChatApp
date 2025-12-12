@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useRef, useEffect } from 'react';
-import { Send } from 'lucide-react';
+import { Loader2, Send, Sparkles, X } from 'lucide-react';
 import type { Contact, Message } from './ChatApp';
 import { MessageItem } from './MessageItem';
 
@@ -15,8 +15,15 @@ interface ChatViewProps {
   onTyping?: (isTyping: boolean) => void;
 }
 
+const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export function ChatView({ contact, messages, onSendMessage, onEditMessage, onReact, typingLabel, onTyping }: ChatViewProps) {
   const [inputValue, setInputValue] = useState('');
+  const [summaryModalOpen, setSummaryModalOpen] = useState(false);
+  const [summaryHours, setSummaryHours] = useState<number | null>(1);
+  const [summaryText, setSummaryText] = useState<string | null>(null);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<number | null>(null);
 
@@ -27,6 +34,13 @@ export function ChatView({ contact, messages, onSendMessage, onEditMessage, onRe
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    setSummaryModalOpen(false);
+    setSummaryError(null);
+    setSummaryText(null);
+    setSummaryLoading(false);
+  }, [contact?.id, contact?.conversationId]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +60,53 @@ export function ChatView({ contact, messages, onSendMessage, onEditMessage, onRe
         onTyping(false);
       }, 3000);
     }
+  };
+
+  const requestSummary = async (hours: number | null) => {
+    if (!contact) return;
+    const conversationId = contact.conversationId || contact.id;
+    if (!conversationId) return;
+
+    setSummaryHours(hours);
+    setSummaryLoading(true);
+    setSummaryError(null);
+    setSummaryText(null);
+
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/v1/conversations/${conversationId}/summary`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ hours }),
+        }
+      );
+      if (!res.ok) {
+        let message = res.status === 503 ? 'Service unavailable' : 'Unable to generate summary right now.';
+        try {
+          const data = await res.json();
+          message = data?.error || message;
+        } catch {
+          // ignore parse errors
+        }
+        setSummaryError(message);
+      } else {
+        const data = await res.json();
+        setSummaryText(data?.summary || 'Nothing significant happened.');
+      }
+    } catch (err) {
+      setSummaryError('Service unavailable');
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  const closeSummaryModal = () => {
+    setSummaryModalOpen(false);
+    setSummaryError(null);
   };
 
   // Message status rendering moved into MessageItem; helpers removed.
@@ -84,6 +145,22 @@ export function ChatView({ contact, messages, onSendMessage, onEditMessage, onRe
               </p>
             )}
           </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            disabled={!contact?.id || summaryLoading}
+            onClick={() => {
+              setSummaryModalOpen(true);
+              setSummaryError(null);
+              setSummaryText(null);
+              setSummaryLoading(false);
+            }}
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span className="hidden sm:inline">Summary</span>
+          </button>
         </div>
       </div>
 
@@ -131,6 +208,80 @@ export function ChatView({ contact, messages, onSendMessage, onEditMessage, onRe
           </button>
         </form>
       </div>
+
+      {summaryModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          onClick={closeSummaryModal}
+        >
+          <div
+            className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-lg font-semibold text-gray-900">Chat Summary</p>
+                <p className="text-sm text-gray-600">Summarize the last...</p>
+              </div>
+              <button
+                type="button"
+            onClick={closeSummaryModal}
+            className="rounded-full bg-gray-100 p-2 text-gray-600 hover:bg-gray-200 transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              {[1, 12, 24].map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  disabled={summaryLoading}
+                  onClick={() => requestSummary(h === 24 ? null : h)}
+                  className="rounded-md px-4 py-2 text-sm font-semibold text-blue-700 bg-blue-100 hover:bg-blue-200 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {h}h
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-4 min-h-[140px] rounded-md border border-gray-100 bg-gray-50/60 p-3">
+              <p className="mb-2 text-xs font-semibold text-gray-500">
+                Interval: {summaryHours === null ? 'toate mesajele (buton 24h)' : `ultimele ${summaryHours}h`}
+              </p>
+              {summaryLoading ? (
+                <div className="flex items-center gap-2 text-sm text-gray-700">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  AI is reading...
+                </div>
+              ) : summaryError ? (
+                <p className="text-sm text-red-600">{summaryError}</p>
+              ) : summaryText ? (
+                <div className="text-sm text-gray-800 whitespace-pre-line leading-6">
+                  {summaryText}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">Pick a time window to generate a summary.</p>
+              )}
+            </div>
+
+            <p className="mt-4 text-xs text-gray-400">
+              AI skips spammy one-liners and highlights decisions, plans, and blockers.
+            </p>
+
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={closeSummaryModal}
+                className="rounded-md bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-200 transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

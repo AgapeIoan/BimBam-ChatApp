@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "DEBUG"
     DATABASE: DatabaseSettings
     REDIS_URL: str
+    OPENAI_API_KEY: str | None = None
+    AI_PROVIDER: str = "openai"  # "openai" or "ollama"
+    OLLAMA_BASE_URL: str = "http://localhost:11434/v1"
+    AI_MODEL: str = "gpt-4o-mini"
     AUTH: AuthSettings = AuthSettings()
 
     model_config = SettingsConfigDict(env_file=".env", env_nested_delimiter="__", extra="ignore")

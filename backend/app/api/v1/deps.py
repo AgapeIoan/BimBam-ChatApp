@@ -1,11 +1,14 @@
+from functools import lru_cache
 from typing import AsyncGenerator
 from uuid import UUID
 
 from fastapi import Cookie, Depends, HTTPException, status
+from openai import AsyncOpenAI
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import session as session_module
 from app.db.session import get_async_session
+from app.core.config import get_settings
 from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.friend_request_repository import FriendRequestRepository
 from app.repositories.friendship_repository import FriendshipRepository
@@ -56,12 +59,38 @@ def get_user_service(session: AsyncSession = Depends(get_async_session)) -> User
     repo = UserRepository(session)
     return UserService(repo)
 
+@lru_cache(maxsize=2)
+def _build_openai_client(api_key: str | None, base_url: str | None) -> AsyncOpenAI:
+    kwargs = {}
+    if base_url:
+        kwargs["base_url"] = base_url
+    if api_key:
+        kwargs["api_key"] = api_key
+    return AsyncOpenAI(**kwargs)
+
+def get_openai_client() -> AsyncOpenAI | None:
+    settings = get_settings()
+    if settings.AI_PROVIDER.lower() == "ollama":
+        return _build_openai_client(api_key="ollama", base_url=settings.OLLAMA_BASE_URL)
+    if not settings.OPENAI_API_KEY:
+        return None
+    return _build_openai_client(api_key=settings.OPENAI_API_KEY, base_url=None)
+
 def get_message_service(session: AsyncSession = Depends(get_async_session)) -> MessageService:
     repo = MessageRepository(session)
     conversation_repo = ConversationRepository(session)
     user_repo = UserRepository(session)
     reaction_repo = MessageReactionRepository(session)
-    return MessageService(repo, conversation_repo, user_repo, reaction_repo)
+    settings = get_settings()
+    openai_client = get_openai_client()
+    return MessageService(
+        repo,
+        conversation_repo,
+        user_repo,
+        reaction_repo,
+        openai_client,
+        model_name=settings.AI_MODEL,
+    )
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
