@@ -421,5 +421,3 @@ Uses `vitest` + Testing Library.
 This project is licensed under the MIT License. See the `LICENSE` file for details.
 
 ---
-
-If you'd like, I can add a `.env.example` (backend + frontend) or validate the README changes against the repo configs.
