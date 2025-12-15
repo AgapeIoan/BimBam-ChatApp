@@ -498,8 +498,9 @@ From `frontend/`:
 cd frontend
 npm test
 ```
-![alt text](image.png)
-![alt text](image-1.png)
+<img width="1006" height="705" alt="image" src="https://github.com/user-attachments/assets/8b01153c-0f75-4e88-9a69-6668b0290473" />
+<img width="1892" height="207" alt="image" src="https://github.com/user-attachments/assets/44fa6850-f7f0-48f0-bf45-4704b5e0692d" />
+
 
 Uses `vitest` + Testing Library.
 
