@@ -388,7 +388,6 @@ Run tests from the `backend/` directory:
 cd backend
 pytest
 ```
-
 ```text
 app\api\v1\__init__.py                                            4      0   100%
 app\api\v1\deps.py                                               59      9    85%   56-57, 60-64, 70-71
@@ -499,6 +498,8 @@ From `frontend/`:
 cd frontend
 npm test
 ```
+![alt text](image.png)
+![alt text](image-1.png)
 
 Uses `vitest` + Testing Library.
 
