@@ -89,97 +89,6 @@ This repository contains:
 
 ## Architecture Overview
 
-# BimBam ChatApp
-
-A modern, full-stack real-time chat application with Google login, one-to-one and group conversations, friend system, message reactions, typing indicators, and online presence.
-
-This repository contains:
-
-- **Backend** – FastAPI, PostgreSQL, Redis, WebSockets
-- **Frontend** – React + TypeScript + Vite + Tailwind + shadcn-style components
-- **Infrastructure** – Docker Compose for local development
-
----
-
-## Features
-
-### Authentication & Accounts
-- Sign in / sign up with **Google OAuth**
-- JWT tokens stored in **HTTP-only cookies**
-- First-time **username setup** after Google signup
-- Basic account management (avatar, username, email display)
-
-### Chat & Conversations
-- **Direct messages (DMs)** between two users
-- **Group conversations** with custom name and members
-- Infinite scroll for message history
-- Message status:
-  - delivered / read flags
-  - edited timestamp
-- **Message editing**
-- **Message reactions** with emoji:
-  - reaction pills with counters
-  - hover tooltip with list of users who reacted
-
-### Social / Friends
-- Search users by email / username
-- Send / accept / reject **friend requests**
-- List of friends and incoming / outgoing requests
-- Conversations list shows last message and unread badge
-
-### Real-Time UX
-- WebSocket-based event system:
-  - `message_send`, `message_edit`, `message_reaction`
-  - `typing` events + typing indicator in UI
-  - `presence` events (online / offline)
-- Redis-backed **presence tracking**
-- Unread count per conversation
-
-### Developer Experience
-- Backend:
-  - FastAPI with Pydantic v2 schemas
-  - SQLAlchemy 2.0 models
-  - Alembic migrations
-  - pytest + pytest-asyncio + testcontainers
-- Frontend:
-  - React 18 + TypeScript
-  - Vite dev server
-  - Tailwind CSS utility styling
-  - Vitest + Testing Library
-- Docker images for backend and frontend
-- CI workflow via GitHub Actions (`.github/workflows/ci.yml`)
-
----
-
-## Tech Stack
-
-**Backend**
-- Python 3.11
-- FastAPI
-- SQLAlchemy 2.0 + asyncpg
-- Alembic
-- PostgreSQL
-- Redis
-- Authlib (Google OAuth)
-- python-jose / PyJWT (JWT)
-- Uvicorn
-
-**Frontend**
-- React + TypeScript
-- Vite
-- Tailwind CSS
-- lucide-react icons
-- emoji-picker-react
-- shadcn-style components
-
-**Infrastructure**
-- Docker / Docker Compose
-- GitHub Actions CI
-
----
-
-## Architecture Overview
-
 - **Backend API**: `http://localhost:8000/api/v1`
   - REST endpoints for auth, users, friends, conversations, messages
   - WebSocket endpoint at `ws://localhost:8000/ws`
@@ -388,6 +297,7 @@ Run tests from the `backend/` directory:
 cd backend
 pytest
 ```
+
 ```text
 app\api\v1\__init__.py                                            4      0   100%
 app\api\v1\deps.py                                               59      9    85%   56-57, 60-64, 70-71
